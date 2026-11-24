@@ -1958,7 +1958,6 @@ function clearInput() { joy = null; mouse.down = false; if (aimStick) { aimStick
 addEventListener('blur', clearInput); document.addEventListener('visibilitychange', () => { if (document.hidden) clearInput(); }); addEventListener('pagehide', clearInput);
 app.view.addEventListener('lostpointercapture', jend);
 addEventListener('touchend', e => { if (!e.touches.length) clearInput(); }, { passive: true }); addEventListener('touchcancel', clearInput, { passive: true });
-app.view.addEventListener('touchstart', e => { if (e.touches.length >= 2) { joy = null; jb.style.display = jk.style.display = 'none'; } }, { passive: true });
 app.view.addEventListener('contextmenu', e => e.preventDefault());
 let actBlock = false;   // set after placing something so a still-held ACT doesn't instantly act again (e.g. hop into the boat you just put down)
 // ---- aiming: you face where you aim and ATTACK goes that way. Mouse: the cursor. Touch: the aim stick next to ATTACK (drag, release to attack); without it, attacks auto-aim as before ----
