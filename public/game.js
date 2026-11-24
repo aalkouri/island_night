@@ -522,6 +522,11 @@ function unzoom() {
 }
 if (window.visualViewport) { visualViewport.addEventListener('resize', unzoom); visualViewport.addEventListener('scroll', unzoom); }
 setInterval(unzoom, 2000);
+if (/[?&]debug\b/.test(location.search)) {   // ?debug=1 on the address: shows the real screen numbers (for sorting out layout problems on a tablet)
+  const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:50%;top:60px;transform:translateX(-50%);z-index:99;background:#000c;color:#0f0;font:11px/1.35 monospace;padding:6px 8px;border-radius:6px;pointer-events:none;white-space:pre'; document.body.appendChild(d);
+  setInterval(() => { const vv = window.visualViewport || {}, c = app.view.getBoundingClientRect(), b = document.body.getBoundingClientRect(), de = document.documentElement;
+    d.textContent = 'inner ' + innerWidth + 'x' + innerHeight + '  client ' + de.clientWidth + 'x' + de.clientHeight + '  screen ' + screen.width + 'x' + screen.height + '\nvisual ' + Math.round(vv.width) + 'x' + Math.round(vv.height) + ' scale ' + (vv.scale || 1).toFixed(2) + ' off ' + Math.round(vv.offsetLeft || 0) + ',' + Math.round(vv.offsetTop || 0) + ' page ' + Math.round(vv.pageLeft || 0) + ',' + Math.round(vv.pageTop || 0) + '\ncanvas ' + Math.round(c.left) + ',' + Math.round(c.top) + ' ' + Math.round(c.width) + 'x' + Math.round(c.height) + ' px ' + app.view.width + 'x' + app.view.height + '\nbody ' + Math.round(b.left) + ',' + Math.round(b.top) + ' ' + Math.round(b.width) + 'x' + Math.round(b.height) + ' dpr ' + devicePixelRatio + ' scroll ' + scrollX + ',' + scrollY + '\nW,H ' + W + 'x' + H + ' Z ' + Z.toFixed(2) + ' ' + (navigator.standalone ? 'standalone ' : '') + (/Macintosh/.test(navigator.userAgent) ? 'UA:desktop-class' : 'UA:mobile'); }, 500);
+}
 let lastWH = '';
 function fit() {
   const w = Math.round(innerWidth), h = Math.round(innerHeight); if (!w || !h) return;

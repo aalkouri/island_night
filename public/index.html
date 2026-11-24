@@ -6,7 +6,7 @@
 <link rel="icon" type="image/png" href="ui/favicon.png">
 <link rel="apple-touch-icon" href="ui/apple-touch-icon.png">
 <style>
-html,body{margin:0;position:fixed;inset:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#0b1a2a;color:#fff;font-family:system-ui,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#0b1a2a;color:#fff;font-family:system-ui,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
 #vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.35) 100%)}
 #hurt{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(255,0,0,.55) 100%);opacity:0;transition:opacity .35s}
 #hud{position:fixed;top:max(8px,env(safe-area-inset-top));left:10px;right:10px;pointer-events:none;font-size:14px;text-shadow:0 1px 3px #000}
@@ -89,6 +89,7 @@ html,body{margin:0;position:fixed;inset:0;width:100%;height:100%;overflow:hidden
 
 #credit{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:13px;letter-spacing:.04em;opacity:.65}
 
+canvas{display:block;position:fixed;left:0;top:0}
 /* portrait vs landscape layouts: controls stay inside the visible screen whichever way the phone is held */
 @media (orientation:landscape){
   #hud{font-size:12px;left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right))}
