@@ -175,6 +175,7 @@ function solidPt(st, x, y) {
 }
 const STRUCT = { bench: { r: RC.RADIUS.bench }, chest: { r: RC.RADIUS.chest }, pot: { r: RC.RADIUS.pot }, smelter: { r: RC.RADIUS.smelter }, wall: { r: RC.RADIUS.wall, hp: 150 }, gate: { r: RC.RADIUS.gate, hp: 50 }, spike: { r: RC.RADIUS.spike, hp: 120 },   // gates are much weaker than walls
    trap: { r: RC.RADIUS.trap } };
+const BAG_MAX = 99, BAG_KEYS = ['wood', 'stone', 'food', 'scrap', 'meat', 'gold', 'pelt', 'apelt', 'ammoP', 'ammoR'];   // no item stack in a bag goes past 99
 const CHEST_CAP = 500, REACH = 62;   // collision radius / hit points of placed structures
 const SPILL = { t: 5, r: 3, c: 8, p: 12 };   // a pine gives far more wood
 const SPEAR_REACH = 30;   // how much further than the normal swing the spear's poke reaches (straight ahead)
@@ -803,9 +804,9 @@ class Room {
   }
   openChest(p, l) {
     const R2 = (a, b) => a + Math.floor(Math.random() * (b - a + 1)), got = [];
-    const give = (k, n, e) => { if (n > 0) { p[k] = (p[k] || 0) + n; got.push('+' + n + ' ' + e); } };
+    const give = (k, n, e) => { n = Math.min(n, BAG_MAX - (p[k] || 0)); if (n > 0) { p[k] = (p[k] || 0) + n; got.push('+' + n + ' ' + e); } };
     const t = l.tier;
-    const ammo = (chance, mult) => { if (Math.random() < chance) { if (Math.random() < 0.6) { const n = R2(6, 12) * mult; p.ammoP = (p.ammoP || 0) + n; got.push('+' + n + ' pistol rounds'); } else { const n = R2(3, 5) * mult; p.ammoR = (p.ammoR || 0) + n; got.push('+' + n + ' rifle rounds'); } } };   // ammunition turns up in chests and cabin furniture
+    const ammo = (chance, mult) => { if (Math.random() < chance) { if (Math.random() < 0.6) { const n = Math.min(R2(6, 12) * mult, BAG_MAX - (p.ammoP || 0)); if (n > 0) { p.ammoP = (p.ammoP || 0) + n; got.push('+' + n + ' pistol rounds'); } } else { const n = Math.min(R2(3, 5) * mult, BAG_MAX - (p.ammoR || 0)); if (n > 0) { p.ammoR = (p.ammoR || 0) + n; got.push('+' + n + ' rifle rounds'); } } } };   // ammunition turns up in chests and cabin furniture
     if (l.kind && l.kind !== 'chest') {   // cabin furniture: scrap, and often something better (gold, a pelt, now and then a gem)
       give('scrap', R2(2, 5), '🔩'); const x = Math.random();
       if (x < 0.30) give('gold', R2(1, 2), '🪙'); else if (x < 0.50) give('pelt', 1, '🐺'); if (Math.random() < 0.04) { award(p, 1, 'chest'); got.push('+1 💎'); } ammo(0.35, 1);
@@ -869,7 +870,7 @@ class Room {
       case 'timber': case 'quake': {
         let n = 0; for (const r of this.res) if (r.hp > 0 && (ab.id === 'timber' ? WOODY(r.k) : ROCKY(r.k)) && Math.hypot(r.x - p.x, r.y - p.y) < 260) { r.hp = 0; r.rt = 45 + Math.random() * 30; this.spill(r, Math.max(1, Math.round(SPILL[r.k] * (ab.id === 'timber' ? c.wood : c.stone)))); n++; }
         this.rForce = 1; for (const q of all) send(q.ws, { t: 'fx', k: 'boom', x: p.x, y: p.y, r: 260 }); if (!n) return no('Nothing in reach.'); break; }
-      case 'harvest': { for (const r of this.res) if (r.k === 'b' && Math.hypot(r.x - p.x, r.y - p.y) < 500 && !this.fires().some(F => Math.hypot(r.x - F.x, r.y - F.y) < RC.camp(F.f.lvl))) r.hp = r.mhp; p.food += Math.round(8 * c.food); this.rForce = 1; break; }
+      case 'harvest': { for (const r of this.res) if (r.k === 'b' && Math.hypot(r.x - p.x, r.y - p.y) < 500 && !this.fires().some(F => Math.hypot(r.x - F.x, r.y - F.y) < RC.camp(F.f.lvl))) r.hp = r.mhp; p.food = Math.min(BAG_MAX, p.food + Math.round(8 * c.food)); this.rForce = 1; break; }
       case 'grenade': { const [x, y] = ahead(260); this.aoe(p, x, y, 130, 60, 2); break; }
       case 'meteor': { const [x, y] = ahead(350); this.aoe(p, x, y, 170, 120, 1); break; }
       case 'inferno': this.aoe(p, p.x, p.y, 220, 50, 2); break;
@@ -883,7 +884,7 @@ class Room {
       case 'totem': this.zones.push({ id: this.nid++, k: 1, x: p.x, y: p.y, r: 300, ttl: 8 }); break;
       case 'beacon': this.zones.push({ id: this.nid++, k: 2, x: p.x, y: p.y, r: 260, ttl: 10 }); break;
       case 'rage': B.rage = 8; break;
-      case 'jackpot': { p.wood += R2(20, 40); p.stone += R2(20, 40); p.food += R2(6, 12); p.scrap += R2(3, 8); if (Math.random() < 0.25) award(p, R2(1, 3), 'jackpot'); break; }
+      case 'jackpot': { p.wood += R2(20, 40); p.stone += R2(20, 40); p.food += R2(6, 12); p.scrap += R2(3, 8); for (const k of BAG_KEYS) if (p[k] > BAG_MAX) p[k] = BAG_MAX; if (Math.random() < 0.25) award(p, R2(1, 3), 'jackpot'); break; }
       case 'rally': for (const q of all) if (!q.down && !q.boat && this.landAt(q.x, q.y) === here) { q.hp = Math.min(q.mhp, q.hp + q.mhp * 0.4); q.buff.speed = 8; } break;
       case 'shadowstep': { const [x, y] = ahead(380); if (this.landAt(x, y) >= 0) { p.x = x; p.y = y; } else { const q = this.landPoint(x, y); p.x = q[0]; p.y = q[1]; } B.crit3 = 10; break; }
       case 'legendary': p.hp = p.mhp; B.power = 8; break;
@@ -961,10 +962,12 @@ class Room {
     if (!st || !['bench', 'chest', 'pot', 'smelter'].includes(st.k)) return fail('Nothing to dismantle.');
     if (p.down) return fail('You are down.'); if (!this.near(p, st)) return fail('Stand next to it to dismantle it.');
     const r = RC.LIST.find(x => x.kind === st.k); let wood = r.cost.wood, stone = r.cost.stone, extra = '';
-    if (st.k === 'chest' && st.items) { p.wood += st.items.wood; p.stone += st.items.stone; p.food += st.items.food; p.scrap += st.items.scrap; extra = ' What was inside went into your bag.'; }
+    if (st.k === 'chest' && st.items) { const spill = { w: 0, s: 0, f: 0, c: 0 }; for (const [k, key] of [['wood', 'w'], ['stone', 's'], ['food', 'f'], ['scrap', 'c']]) { const n = st.items[k] || 0, fit = Math.max(0, Math.min(n, BAG_MAX - (p[k] || 0))); p[k] = (p[k] || 0) + fit; spill[key] = Math.min(n - fit, 25); }
+      for (const [k, n] of Object.entries(spill)) for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, d = st.r + 16 + Math.random() * 30; this.pend.push({ k: k === 'c' ? 'm' : k, x: st.x + Math.cos(a) * d, y: st.y + Math.sin(a) * d, t: 0.45 }); }
+      extra = ' What was inside went into your bag; what did not fit (99 max) is on the floor.'; }
     if (st.k === 'smelter' && st.smelt && st.smelt.q) stone += st.smelt.q * RC.SMELT.cost;   // rocks that were queued come back
     this.struct = this.struct.filter(s => s !== st);
-    if (this.drops.length + this.pend.length + wood + stone > 150) { p.wood += wood; p.stone += stone; }   // too much already on the floor: straight into the bag
+    if (this.drops.length + this.pend.length + wood + stone > 150) { p.wood = Math.min(BAG_MAX, p.wood + wood); p.stone = Math.min(BAG_MAX, p.stone + stone); }   // too much already on the floor: straight into the bag
     else for (const [k, n] of [['w', wood], ['s', stone]]) for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, d = st.r + 16 + Math.random() * 30; this.pend.push({ k, x: st.x + Math.cos(a) * d, y: st.y + Math.sin(a) * d, t: 0.45 }); }
     return { ok: true, msg: r.n + ' dismantled.' + extra };
   }
@@ -1541,7 +1544,7 @@ class Room {
             } else if (this.campOf(p) && !this.struct.some(st => st.k === 'bench' && this.inCamp(this.campOf(p), st))) { if (actEdge) { p.actcd = 0.4; send(p.ws, { t: 'open', what: 'bench', id: 0 }); } }   // no bench yet: ACT in camp opens the build menu so you can place the first one
             else if (p.gear.rod && !p.boat && this.isWater(p.x + Math.cos(p.fa) * 80, p.y + Math.sin(p.fa) * 80)) {   // fishing rod at the shore: ACT casts
               if (!this.spendSta(p, STA.bush)) { p.actcd = 0.3; this.winded(p); }
-              else { p.actcd = 1.1; p.sw = (p.sw + 1) & 255; p.swk = 1; p.swa = p.fa; if (Math.random() < 0.5) { const n = Math.max(1, Math.round(2 * c.food)); p.food += n; send(p.ws, { t: 'fish', n }); } else send(p.ws, { t: 'fish', n: 0 }); }
+              else { p.actcd = 1.1; p.sw = (p.sw + 1) & 255; p.swk = 1; p.swa = p.fa; if (Math.random() < 0.5) { const n = Math.min(Math.max(1, Math.round(2 * c.food)), Math.max(0, BAG_MAX - p.food)); p.food += n; send(p.ws, { t: 'fish', n }); } else send(p.ws, { t: 'fish', n: 0 }); }
             }
             else { p.actcd = 0.55; p.sw = (p.sw + 1) & 255; p.swk = 1; p.swa = p.fa; }   // nothing to chop: still swing
           }
@@ -1603,9 +1606,12 @@ class Room {
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const d = this.drops[i]; d.ttl -= dt; let taken = false;
       if (d.ttl > 0) for (const p of P) if (!p.down && dist(p, d) < 30) { if (d.k === 'q') { if (p.slots.length >= slotCap(p, this) || (d.food === 'foot' && p.slots.includes('foot'))) continue; p.slots.push(d.food); taken = true; break; }   // cooked food needs a free slot; with all 3 full it stays on the floor
+        const bk = { w: 'wood', s: 'stone', f: 'food', n: 'meat', o: 'gold', h: 'pelt', H: 'apelt' }[d.k] || (d.k === 'd' ? '' : 'scrap');
+        if (bk && (p[bk] || 0) >= BAG_MAX) continue;   // that stack is full (99): it stays on the floor until it times out
         if (d.k === 'w') p.wood++; else if (d.k === 's') p.stone++; else if (d.k === 'f') p.food++; else if (d.k === 'd') award(p, 1, 'drop'); else if (d.k === 'n') p.meat++; else if (d.k === 'o') p.gold++; else if (d.k === 'h') p.pelt++; else if (d.k === 'H') p.apelt++; else { p.scrap++; this.scrapFound = true; } taken = true; break; }
       if (taken || d.ttl <= 0) this.drops.splice(i, 1);
     }
+    for (const p of P) if (!p.inf) for (const k of BAG_KEYS) if (p[k] > BAG_MAX) p[k] = BAG_MAX;   // safety net: whatever path added items, a stack never stays above 99
     for (const st of this.struct) if (st.k === 'spike') {   // spike strips hurt every enemy on them (not the Charger), 10 damage a tick per enemy, and wear down as they do
       for (const e of [...this.aliens, ...(this.wolves || [])]) {
         if (e.hp <= 0 || e.k === 2 || e.air || Math.hypot(e.x - st.x, e.y - st.y) > 36) continue;
