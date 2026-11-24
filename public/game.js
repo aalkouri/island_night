@@ -1640,7 +1640,6 @@ function hud() {
   else if (mp && mp[10]) b = 'You are down - a teammate can revive you (they stand next to you and hold ACT for 10 s)';
   else if (now < noticeUntil) b = noticeText;
   else if (S.ph === 2 && f[0] <= 0) b = '⚠ The fire is out!';
-  else if (now < tipUntil) b = 'Hold ACT by a tree (4 hits) or rock (3 hits), pick berries, then run over the logs, stones and berries. Push the stick past the ring to run (uses stamina). At the fire, ACT adds wood or upgrades it (stone). ATTACK: fight aliens.';
   const bn = $('banner'); if (bn.textContent !== b) { bn.textContent = b; bn.style.fontSize = b.length > 60 ? '15px' : '22px'; }
 }
 
