@@ -409,30 +409,30 @@ function mkWolf(w) {
     const c = new PIXI.Container(), sh = new PIXI.Sprite(T_SHADOW); sh.anchor.set(.5); sh.scale.set(SP.sh[0], SP.sh[1]); sh.y = SP.sy;
     const body = new PIXI.Sprite(SP.t); body.anchor.set(.5); body.scale.set(SP.sc); const hp = new PIXI.Graphics(); hp.visible = false; c.addChild(sh, body, hp); ents.addChild(c); c.alpha = 0;
     const eyes = w[11] === 3 ? [0, 1].map(() => { const s = new PIXI.Sprite(T_GLOW); s.anchor.set(.5); s.tint = 0xffa020; s.blendMode = BM.ADD; s.scale.set(.2); overL.addChild(s); return s; }) : [];   // imps glow
-    return { c, body, sh, hp, eyes, al: false, big: w[11] === 2 ? 1 : 0, hpW: SP.hw, hpY: SP.hy, kind: 'w', ang: w[3] / 100, age: 0, lh: -1, flash: 0, lunge: 0, gait: 0, st: w[6], impGlow: w[11] === 3 };
+    return SPR.attach({ c, body, sh, hp, eyes, al: false, big: w[11] === 2 ? 1 : 0, hpW: SP.hw, hpY: SP.hy, kind: 'w', ang: w[3] / 100, age: 0, lh: -1, flash: 0, lunge: 0, gait: 0, st: w[6], impGlow: w[11] === 3 }, [0, 'boar', 'golem', 'imp'][w[11]]);
   }
   if (w[10]) {   // a vulture
     const c = new PIXI.Container(), sh = new PIXI.Sprite(T_SHADOW); sh.anchor.set(.5); const body = new PIXI.Sprite(w[10] === 1 ? T_VULF : T_VULL); body.anchor.set(.5); body.scale.set(.7);
     const hp = new PIXI.Graphics(); hp.visible = false; c.addChild(sh, body, hp); ents.addChild(c); c.alpha = 0;
-    return { c, body, sh, hp, eyes: [], al: false, vul: 1, air: w[10] === 1, kind: 'w', ang: w[3] / 100, age: 0, lh: -1, flash: 0, lunge: 0, gait: 0, st: w[6], lift: w[10] === 1 ? 1 : 0 };
+    return SPR.attach({ c, body, sh, hp, eyes: [], al: false, vul: 1, air: w[10] === 1, kind: 'w', ang: w[3] / 100, age: 0, lh: -1, flash: 0, lunge: 0, gait: 0, st: w[6], lift: w[10] === 1 ? 1 : 0 }, 'vulture');
   }
   if (w[9]) {   // bear (1) or woolly mammoth (2)
     const mm = w[9] === 2, c = new PIXI.Container(), sh = new PIXI.Sprite(T_SHADOW); sh.anchor.set(.5); sh.scale.set(mm ? 3 : 1.7, mm ? 1.3 : .8); sh.y = mm ? 20 : 12;
     const body = new PIXI.Sprite(mm ? T_MAMMOTH : T_BEAR); body.anchor.set(.5); body.scale.set(mm ? 1.15 : .95); const hp = new PIXI.Graphics(); hp.visible = false;
     c.addChild(sh, body, hp); ents.addChild(c); c.alpha = 0;
-    return { c, body, sh, hp, eyes: [], al: false, big: w[9], kind: 'w', ang: w[3] / 100, age: 0, lh: -1, flash: 0, lunge: 0, gait: 0, st: w[6] };
+    return SPR.attach({ c, body, sh, hp, eyes: [], al: false, big: w[9], kind: 'w', ang: w[3] / 100, age: 0, lh: -1, flash: 0, lunge: 0, gait: 0, st: w[6] }, mm ? 'mammoth' : 'bear');
   }
   const al = !!w[8], c = new PIXI.Container(), sh = new PIXI.Sprite(T_SHADOW); sh.anchor.set(.5); sh.scale.set(al ? 1.25 : .9, al ? .6 : .45); sh.y = al ? 8 : 6;
   const body = new PIXI.Sprite(al ? T_WOLFA : T_WOLF); body.anchor.set(.5); body.scale.set(al ? 1.2 : .85); const hp = new PIXI.Graphics(); hp.visible = false;
   c.addChild(sh, body, hp); ents.addChild(c); c.alpha = 0;
   const eyes = al ? [0, 1].map(() => { const s = new PIXI.Sprite(T_GLOW); s.anchor.set(.5); s.tint = 0xff2a2a; s.blendMode = BM.ADD; s.scale.set(.16); overL.addChild(s); return s; }) : [];   // glowing red eyes
-  return { c, body, sh, hp, eyes, al, kind: 'w', ang: w[3] / 100, age: 0, lh: -1, flash: 0, lunge: 0, gait: 0, st: w[6] };
+  return SPR.attach({ c, body, sh, hp, eyes, al, kind: 'w', ang: w[3] / 100, age: 0, lh: -1, flash: 0, lunge: 0, gait: 0, st: w[6] }, al ? 'alpha_wolf' : 'wolf');
 }
 function mkRabbit(b) {   // b[5]: 0 rabbit, 1 scorpion, 2 penguin, 3 lava salamander
   const c = new PIXI.Container(), sh = new PIXI.Sprite(T_SHADOW); sh.anchor.set(.5); sh.scale.set(.55, .32); sh.y = 5;
   const tx = [T_RABBIT, T_SCORP, T_PENG, T_SAL][b[5] || 0], sc = [.8, .62, .6, .6][b[5] || 0];
   const body = new PIXI.Sprite(tx); body.anchor.set(.5); body.scale.set(sc); c.addChild(sh, body); ents.addChild(c); c.alpha = 0;
-  return { c, body, sh, kind: 'r', ang: b[3] / 100, age: 0, hop: 0, crit: b[5] || 0, bs: sc };
+  return SPR.attach({ c, body, sh, kind: 'r', ang: b[3] / 100, age: 0, hop: 0, crit: b[5] || 0, bs: sc }, ['rabbit', 'scorpion', 'penguin', 'salamander'][b[5] || 0] || 'rabbit');
 }
 const T_ALIEN = tex(84, 84, g => {
   g.translate(42, 42);
@@ -626,7 +626,7 @@ function buildWorld(list) {
     pcs[ti].addChild(sp);
   }
   // fire pit stones
-  for (let i = 0; i < 10; i++) { const a = i / 10 * TAU, s = new PIXI.Sprite(T_ROCK); s.anchor.set(.5, .8); s.scale.set(.26); s.position.set(Math.cos(a) * 30, Math.sin(a) * 30 + 4); s.zIndex = s.y; s.tint = 0xbbbbbb; ents.addChild(s); }
+  { const stones = []; for (let i = 0; i < 10; i++) { const a = i / 10 * TAU, s = new PIXI.Sprite(T_ROCK); s.anchor.set(.5, .8); s.scale.set(.26); s.position.set(Math.cos(a) * 30, Math.sin(a) * 30 + 4); s.zIndex = s.y; s.tint = 0xbbbbbb; ents.addChild(s); stones.push(s); } SPR.pit(0, 0, stones); }   // (replaced by the campfire picture once it has loaded)
   ISL.forEach((is, i) => buildIsland(is, i + 1));
   // resources
   list.forEach((r, i) => {
@@ -693,7 +693,7 @@ function mkPlayer(p) {
   const hp = new PIXI.Graphics(); hp.y = -27; const sta = new PIXI.Graphics(); sta.y = 28; sta.visible = false;   // health bar above the head, stamina bar below the feet
   const tool = new PIXI.Sprite(T_AXE); tool.anchor.set(.08, .5); tool.scale.set(.62); tool.visible = false;
   c.addChild(sh, body, tool, name, nb, hp, sta); ents.addChild(c);
-  return { c, body, tool, name, nb, hp, sta, stv: 100, ang: 0, lh: -1, ld: -1, dust: 0, kind: 'p', sw: p[12], swing: null };
+  return SPR.attach({ c, body, tool, name, nb, hp, sta, stv: 100, ang: Math.PI / 2, lh: -1, ld: -1, dust: 0, kind: 'p', sw: p[12], swing: null }, 'cls_' + p[2]);
 }
 // per-kind look: 0 = normal alien, 1 = brute (every 5th night), 2 = the Charger (3x a normal alien)
 const AK = {
@@ -712,7 +712,7 @@ function mkAlien(a) {
   const body = new PIXI.Sprite(ak.human ? T_VIL[a[5]] : T_ALIEN); body.anchor.set(.5); body.scale.set(ak.sc); body.tint = ak.tint;
   const hp = new PIXI.Graphics(); c.addChild(sh, body, hp); ents.addChild(c); c.alpha = 0;
   const eyes = (ak.human ? [] : [0, 1]).map(() => { const s = new PIXI.Sprite(T_GLOW); s.anchor.set(.5); s.tint = ak.eyeCol; s.blendMode = BM.ADD; s.scale.set(ak.eye); overL.addChild(s); return s; });
-  return { c, body, hp, eyes, sc: ak.sc, ak, big: a[5] > 0, charger: a[5] === 2, ang: 0, age: 0, lh: -1, kind: 'a', flash: 0, trail: 0 };
+  return SPR.attach({ c, body, hp, eyes, sc: ak.sc, ak, big: a[5] > 0, charger: a[5] === 2, ang: 0, age: 0, lh: -1, kind: 'a', flash: 0, trail: 0 }, a[9] ? 'spitter' : ['alien', 'brute', 'charger', 'villager', 'villager', 'mage', 'zealot'][a[5]] || 'alien');
 }
 function drawHp(g, w, f, col) { g.clear(); g.beginFill(0x000000, .55); g.drawRoundedRect(-w / 2, 0, w, 5, 2); g.endFill(); g.beginFill(col); g.drawRoundedRect(-w / 2, 0, Math.max(0, w * f), 5, 2); g.endFill(); }
 function angLerp(a, b, k) { let d = ((b - a + Math.PI) % TAU + TAU) % TAU - Math.PI; return a + d * k; }
@@ -724,7 +724,7 @@ function startSwing(e, p, d, dx) {
   e.swing = { t: 0, kind, ang, hit: false }; e.ang = ang;
   if (kind === 1) e.tool.texture = T_AXE; else if (kind === 2) e.tool.texture = T_PICK; else if (kind === 4) e.tool.texture = T_BLADE; else if (kind === 5) e.tool.texture = T_SPEARP;
   e.tool.anchor.set(kind === 5 ? .16 : .08, .5); e.tool.scale.set(kind === 5 ? .3 : .62);
-  e.tool.visible = kind !== 3; SFX.whoosh(d, dx);
+  SPR.tool(e.tool, kind); e.tool.visible = kind !== 3; SFX.whoosh(d, dx);
 }
 function pokeOff(t) {   // spear poke: pull back, shoot forward, slide back
   if (t < .12) return -10 * ease(t / .12);
@@ -751,11 +751,11 @@ const fallers = [];
 function breakFx(r, fromX, d, dx) {
   r.c.visible = false; if (r.bar) r.bar.clear();
   if (WOODY(r.k)) {
-    const spr = new PIXI.Sprite(r.k === 'c' ? T_CACTUS : r.k === 'p' ? T_PINE : T_TREE); spr.anchor.set(.5, r.k !== 't' ? .9 : .88); spr.position.set(r.x, r.y); spr.scale.set(r.s.scale.x); spr.zIndex = r.y; ents.addChild(spr);
+    const spr = new PIXI.Sprite(r.s.texture); spr.anchor.copyFrom(r.s.anchor); spr.tint = r.s.tint; spr.position.set(r.x, r.y); spr.scale.set(r.s.scale.x); spr.zIndex = r.y; ents.addChild(spr);
     const sh = new PIXI.Sprite(T_SHADOW); sh.anchor.set(.5); sh.scale.set(1.7, .8); sh.position.set(r.x, r.y + 4); sh.zIndex = r.y - 1; ents.addChild(sh);
     fallers.push({ k: 't', spr, sh, t: 0, dir: r.x >= fromX ? 1 : -1, r, landed: false, d, dx });
   } else {
-    const spr = new PIXI.Sprite(r.k === 'g' ? T_GOLDV : T_ROCK); spr.anchor.set(.5, .8); spr.position.set(r.x, r.y); spr.scale.set(r.base); spr.zIndex = r.y; ents.addChild(spr);
+    const spr = new PIXI.Sprite(r.s.texture); spr.anchor.copyFrom(r.s.anchor); spr.tint = r.s.tint; spr.position.set(r.x, r.y); spr.scale.set(r.base); spr.zIndex = r.y; ents.addChild(spr);
     SFX.rockbreak(d, dx); shake = Math.max(shake, .08);
     burst(r.x, r.y - 8, 14, 0xaab0b8, 170, false, .16); burst(r.x, r.y - 10, 8, 0x8d939b, 120, false, .2);
     for (let i = 0; i < 7; i++) emit(pfx, T_STONE, r.x, r.y - 10, rnd(-110, 110), rnd(-150, -40), rnd(.5, .8), .5, .3, 0xffffff, 1, false, 420);
@@ -795,9 +795,9 @@ function syncDrops(m, _d, _dx) {
     seen[d[0]] = 1; let e = dropE[d[0]];
     if (!e) {
       const c = new PIXI.Container(), sh = new PIXI.Sprite(T_SHADOW); sh.anchor.set(.5); sh.scale.set(.6, .35); sh.y = 4;
-      const spr = d[1] === 'q' ? Object.assign(new PIXI.Text((RC.ITEM_BY[d[4]] || {}).e || '🍲', { fontSize: 30 }), { resolution: 2 }) : new PIXI.Sprite(d[1] === 'w' ? T_LOG : d[1] === 'm' ? T_SCRAP : d[1] === 'f' ? T_BERRY : d[1] === 'd' ? T_GEM : d[1] === 'n' ? T_MEAT : d[1] === 'o' ? T_ORE : d[1] === 'h' ? T_PELT : d[1] === 'H' ? T_APELT : T_STONE); spr.anchor.set(.5); spr.scale.set(DROP_S[d[1]]); spr.rotation = d[1] === 'w' ? rnd(-.8, .8) : rnd(-.4, .4);
+      const spr = d[1] === 'q' ? Object.assign(new PIXI.Text((RC.ITEM_BY[d[4]] || {}).e || '🍲', { fontSize: 30 }), { resolution: 2 }) : new PIXI.Sprite(d[1] === 'w' ? T_LOG : d[1] === 'm' ? T_SCRAP : d[1] === 'f' ? T_BERRY : d[1] === 'd' ? T_GEM : d[1] === 'n' ? SPR.get('steak') || T_MEAT : d[1] === 'o' ? T_ORE : d[1] === 'h' ? T_PELT : d[1] === 'H' ? T_APELT : T_STONE); spr.anchor.set(.5); spr.scale.set(DROP_S[d[1]]); spr.rotation = d[1] === 'w' ? rnd(-.8, .8) : rnd(-.4, .4);
       c.addChild(sh, spr); c.position.set(d[2], d[3]); c.zIndex = d[3]; ents.addChild(c);
-      e = dropE[d[0]] = { c, spr, sh, x: d[2], y: d[3], t: 0, ph: rnd(0, TAU), k: d[1], dur: d[1] === 'm' || d[1] === 'q' ? .5 : .35 };
+      e = dropE[d[0]] = { c, spr, sh, x: d[2], y: d[3], t: 0, ph: rnd(0, TAU), k: d[1], dur: d[1] === 'm' || d[1] === 'q' ? .5 : .35, ds: d[1] === 'n' && spr.texture !== T_MEAT ? 27 / spr.texture.width : DROP_S[d[1]] };
       if (d[1] === 'm' || (d[1] === 'q' && d[4] !== 'foot')) {   // metal scrap jumps out of the nearest smelter; cooked food pops out of the nearest pot
         let bs = null, bd = 160; for (const id in structE) { const st = structE[id]; if (st.k !== (d[1] === 'q' ? 'pot' : 'smelter')) continue; const dd = Math.hypot(st.x - d[2], st.y - d[3]); if (dd < bd) { bd = dd; bs = st; } }
         if (bs) e.from = { x: bs.x, y: bs.y - 18 }; const me = ents2['p' + myId], dm = me ? Math.hypot(me.x - d[2], me.y - d[3]) : 0; if (d[1] === 'm') SFX.smeltDone(dm, me ? d[2] - me.x : 0);
@@ -817,7 +817,7 @@ function stepDrops(dt) {
   for (const id in dropE) {
     const e = dropE[id]; e.t += dt; const u = Math.min(1, e.t / e.dur), hop = Math.sin(u * Math.PI) * (e.from ? 46 : 26) * (1 - u * .3);
     if (e.from && u < 1) { e.c.x = e.from.x + (e.x - e.from.x) * u; e.c.y = e.from.y + (e.y - e.from.y) * u; } else if (e.from) { e.c.x = e.x; e.c.y = e.y; }
-    e.spr.y = -hop + Math.sin(T * 3 + e.ph) * 1.2 * (u >= 1 ? 1 : 0); e.spr.rotation += e.from && u < 1 ? dt * 14 : 0; e.spr.scale.set(DROP_S[e.k] * (.3 + .7 * Math.min(1, u * 1.6))); e.sh.alpha = .4 + .5 * u;
+    e.spr.y = -hop + Math.sin(T * 3 + e.ph) * 1.2 * (u >= 1 ? 1 : 0); e.spr.rotation += e.from && u < 1 ? dt * 14 : 0; e.spr.scale.set(e.ds * (.3 + .7 * Math.min(1, u * 1.6))); e.sh.alpha = .4 + .5 * u;
   }
   for (let i = flyers.length - 1; i >= 0; i--) {
     const f = flyers[i]; f.t += dt; const u = Math.min(1, f.t / .2), pe = ents2['p' + f.pid];
@@ -862,7 +862,7 @@ function syncBoats(m) {
     if (!e) {
       const c = new PIXI.Container(), sh = new PIXI.Sprite(T_SHADOW); sh.anchor.set(.5); sh.scale.set(2.2, 1); sh.alpha = .5;
       const bty = RC.BOATS[b[6]] || RC.BOATS.boat, sp = new PIXI.Sprite(T_BOAT); sp.anchor.set(.5); sp.scale.set(bty.sc); if (b[6] === 'sloop') sp.tint = 0xb8d4f0; else if (b[6] === 'galleon') sp.tint = 0xf0d48a; sh.scale.set(2.2 * bty.sc / .8, 1); c.addChild(sh, sp); ents.addChild(c);
-      e = boatE[b[0]] = { c, sp, x: b[1], y: b[2], tx: b[1], ty: b[2], ang: b[3] / 100, ta: b[3] / 100, ph: rnd(0, TAU) }; c.position.set(e.x, e.y);
+      e = boatE[b[0]] = { c, sp, bk: b[6] || 'boat', x: b[1], y: b[2], tx: b[1], ty: b[2], ang: b[3] / 100, ta: b[3] / 100, ph: rnd(0, TAU) }; c.position.set(e.x, e.y);
     }
     e.tx = b[1]; e.ty = b[2]; e.ta = b[3] / 100; e.riders = b[4]; e.drv = b[5]; e.storm = b[8] || 0;
     const lf = b[7] == null ? 100 : b[7];   // how much of its life is left: the hull darkens and a bar shows once it is below half
@@ -1018,7 +1018,7 @@ function stepBoats(dt) {
   for (const id in boatE) {
     const e = boatE[id], k = Math.min(1, dt * 12); e.x += (e.tx - e.x) * k; e.y += (e.ty - e.y) * k; e.ang = angLerp(e.ang, e.ta, Math.min(1, dt * 8));
     const rough = e.storm ? 1 : 0, wob = rough ? Math.sin(T * 2.6 + e.ph) * .09 + Math.sin(T * 6.1 + e.ph * 2) * .035 : 0;   // in a storm the boat pitches and bobs hard
-    e.c.position.set(e.x, e.y + Math.sin(T * (rough ? 3.4 : 1.6) + e.ph) * (rough ? 6 : 1.5)); e.c.zIndex = e.y - 40; e.sp.rotation = e.ang + wob;
+    e.c.position.set(e.x, e.y + Math.sin(T * (rough ? 3.4 : 1.6) + e.ph) * (rough ? 6 : 1.5)); e.c.zIndex = e.y - 40; e.sp.rotation = e.ang + wob; SPR.boat(e);
     if (e.bar) e.bar.position.set(-Math.cos(e.ang) * e.rl, -Math.sin(e.ang) * e.rl + 4);
   }
   stormFx(dt);
@@ -1075,7 +1075,7 @@ function stepStructs(dt) {
   for (const id in structE) {
     const e = structE[id];
     if (e.t < 1) { e.t = Math.min(1, e.t + dt * 4); const u = e.t, b = 1 + 2.2 * Math.pow(u - 1, 3) + 1.2 * Math.pow(u - 1, 2); e.spr.scale.set(e.base * Math.max(.1, b)); }
-    e.flash = Math.max(0, e.flash - dt); e.spr.tint = e.flash > 0 ? 0xffaaaa : e.broke ? 0x6b5a4a : 0xffffff; e.spr.alpha = e.broke ? .7 : 1;
+    e.flash = Math.max(0, e.flash - dt); e.spr.tint = e.flash > 0 ? 0xffaaaa : e.broke ? 0x6b5a4a : 0xffffff; e.spr.alpha = e.broke ? .7 : 1; SPR.struct(e);
     if (e.k === 'smelter') {
       const sm = e.smelt || [0, 0], working = sm[0] > 0;
       if (!e.prog) { e.prog = new PIXI.Graphics(); e.prog.y = -66; e.c.addChild(e.prog); e.qt = new PIXI.Text('', { fontFamily: 'system-ui,sans-serif', fontSize: 13, fontWeight: '800', fill: 0xffe082, stroke: 0x000000, strokeThickness: 3 }); e.qt.anchor.set(.5, 1); e.qt.y = -72; e.qt.resolution = 2; e.c.addChild(e.qt); e.pv = 0; e.glow = new PIXI.Sprite(T_GLOW); e.glow.anchor.set(.5); e.glow.blendMode = BM.ADD; e.glow.tint = 0xff8a1c; overL.addChild(e.glow); }
@@ -1112,7 +1112,7 @@ function startPlacing(r) {
   const D = SDEF[r.kind]; placingId = r.id; placeRot = (lastRot[r.id] || 0) % 8;
   ghost = new PIXI.Container(); ghostRot = new PIXI.Container();
   const sp = new PIXI.Sprite(r.kind === 'wall' ? T_WALLS[r.mat || ''] : r.kind === 'gate' ? T_GATES[r.mat || ''] : D.tex); sp.anchor.set(.5, .5); sp.scale.set(D.base);
-  ghostRot.y = -(D.ay - .5) * D.tex.height * D.base; ghostRot.addChild(sp); ghost.addChild(ghostRot);
+  ghostRot.y = -(D.ay - .5) * D.tex.height * D.base; ghostRot.addChild(sp); ghost.addChild(ghostRot); SPR.ghost(r.kind, r.mat, ghost, ghostRot, sp);
   ghostF = new PIXI.ColorMatrixFilter(); ghost.filters = [ghostF]; ents.addChild(ghost);
   $('placeRotR').style.display = r.norot ? 'none' : ''; $('placeBar').style.display = 'flex'; $('placeName').textContent = r.e + ' ' + r.n; $('placeMsg').textContent = '';
 }
@@ -1124,7 +1124,7 @@ let boatSlot = -1;
 function startPlacingBoat(i) {   // tap the boat in a slot: a see-through boat follows you at the water's edge; ACT puts it down
   stopPlacing(); setCraft(false); closeChest(); closePot(); closeSmelt(); boatSlot = i; placingId = '__boat';
   ghost = new PIXI.Container(); ghostRot = new PIXI.Container();
-  const sp = new PIXI.Sprite(T_BOAT); sp.anchor.set(.5); sp.scale.set(.8); ghostRot.addChild(sp); ghost.addChild(ghostRot);
+  const sp = new PIXI.Sprite(T_BOAT); sp.anchor.set(.5); sp.scale.set(.8); SPR.boatGhost(sp); ghostRot.addChild(sp); ghost.addChild(ghostRot);
   ghostF = new PIXI.ColorMatrixFilter(); ghost.filters = [ghostF]; ents.addChild(ghost); markSlot();
   $('placeRotR').style.display = 'none'; $('placeBar').style.display = 'flex'; $('placeName').textContent = '⛵ Boat'; $('placeMsg').textContent = '';
 }
@@ -1522,14 +1522,16 @@ app.ticker.add(() => {
       e.eyes.forEach(s => s.alpha = e.c.alpha * (.75 + Math.sin(T * 6 + e.x) * .25));
       if (e.charger && sp > 90) { e.trail -= dt; if (e.trail <= 0) { e.trail = .04; emit(pfx, T_GLOW, e.x - Math.cos(e.ang) * 40 + rnd(-14, 14), e.y + 18 + rnd(-8, 8), -Math.cos(e.ang) * 30, rnd(-14, 6), .7, .32, .8, 0xd9c79a, .45, false, 0); } }   // dust kicked up by the charge
     }
+    SPR.step(e, dt, sp);   // a loaded picture takes over from the code-drawn body (sprites.js)
   }
+  SPR.stepNpcs(dt); SPR.stepPits();
   // resources: sway + pop-in
   const cullR = Math.max(W, H) / Z / 2 + 140;
   for (const ic of islandCs) ic.c.visible = Math.hypot(ic.x - camX, ic.y - camY) < ic.r + cullR * 1.42;   // island ground: drawn only when any of it can be on screen
   for (const r of resNodes) {
     const near = Math.abs(r.x - camX) < cullR && Math.abs(r.y - camY) < cullR;   // only resources near the camera are in the scene (there are thousands in the world)
     if (near) { if (!r.c.parent) ents.addChild(r.c); } else if (r.c.parent && (Math.abs(r.x - camX) > cullR * 1.3 || Math.abs(r.y - camY) > cullR * 1.3)) ents.removeChild(r.c);
-    r.c.renderable = near;
+    r.c.renderable = near; if (near && r.sv !== SPR.ver) SPR.res(r);
     if (r.barT > 0 && r.bar) { r.barT -= dt; if (r.barT <= 0) r.bar.clear(); else if (r.barT < .4) r.bar.alpha = r.barT / .4; else r.bar.alpha = 1; }
     if (r.shake > 0) r.shake = Math.max(0, r.shake - dt);
     if (!r.c.visible || !r.c.parent) continue;
@@ -1676,7 +1678,7 @@ let sel = 'forester', hadCls = false; try { const sc = localStorage.getItem('cls
 function chosen() {
   const c = GC.BY[sel] || GC.BY.forester, ic = $('cIcon');
   ic.textContent = '';
-  if (PCAN[c.id]) { const cv = document.createElement('canvas'); cv.width = cv.height = 64; cv.getContext('2d').drawImage(PCAN[c.id], 0, 0); cv.style.cssText = 'width:36px;height:36px;display:block'; ic.appendChild(cv); }
+  if (PCAN[c.id]) { const cv = document.createElement('canvas'); cv.width = cv.height = 64; cv.getContext('2d').drawImage(PCAN[c.id], 0, 0); SPR.icon(cv, c.id); cv.style.cssText = 'width:36px;height:36px;display:block'; ic.appendChild(cv); }
   else ic.textContent = c.e;
   $('cName').textContent = c.n + ' · Lv ' + GC.lvlOf(PF.xp[c.id]);
 }
@@ -1740,7 +1742,7 @@ function buildPicker() {
     const row = document.createElement('div'); row.className = 'row'; box.appendChild(row);
     for (const c of GC.LIST.filter(x => x.price === price)) {
       const owned = PF.owned.includes(c.id), d = document.createElement('div'); d.className = 'card' + (c.id === sel ? ' sel' : '') + (owned ? '' : ' locked');
-      const cvs = document.createElement('canvas'); cvs.width = cvs.height = 64; cvs.getContext('2d').drawImage(PCAN[c.id], 0, 0); d.appendChild(cvs);
+      const cvs = document.createElement('canvas'); cvs.width = cvs.height = 64; cvs.getContext('2d').drawImage(PCAN[c.id], 0, 0); SPR.icon(cvs, c.id); d.appendChild(cvs);
       const st = '❤' + c.hp + '  ⚔' + c.dmg + '  👟' + c.spd;
       d.insertAdjacentHTML('beforeend', '<div class="cn">' + c.e + ' ' + c.n + (owned ? ' <span style="color:#ffd54f;font-size:12px">Lv ' + GC.lvlOf(PF.xp[c.id]) + '</span>' : '') + '</div><div class="cd">' + c.d + '</div><div class="cs">' + st + '</div><div class="cb">' + (c.id === sel ? '✔ Selected' : owned ? 'Tap to select' : '🔒 ' + c.price + ' 💎') + '</div>');
       window.xCard && xCard(c, d);
@@ -1895,7 +1897,7 @@ $('go').onclick = () => {
       const me = ents2['p' + myId]; if (me) floatText(me.x, me.y - 12, m.msg, m.ok ? 0xffe082 : 0xff8a80);
       if (m.ok) { SFX.levelup(); closeChest(); closePot(); closeSmelt(); setCraft(false); }
     } else if (m.t === 'rk') {   // a rock grew back as a gold ore vein (or a mined vein came back as a rock)
-      const r = resNodes[m.i]; if (r) { r.k = m.k; r.mhp = RHP[m.k] || 3; r.s.texture = m.k === 'g' ? T_GOLDV : T_ROCK; }
+      const r = resNodes[m.i]; if (r) { r.k = m.k; r.mhp = RHP[m.k] || 3; r.s.texture = m.k === 'g' ? T_GOLDV : T_ROCK; if (r.b0 !== undefined) { r.base = r.b0; r.s.anchor.set(.5, .8); r.s.scale.set(r.base); } r.sv = 0; }
     } else if (m.t === 'trapSet') {
       const me = ents2['p' + myId]; if (me) floatText(me.x, me.y - 10, 'Trap set!', 0xffe082);   // (the trap appearing already plays the build sound)
     } else if (m.t === 'fishgame') { openFish(m.id, m.kind);

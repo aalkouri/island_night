@@ -25,14 +25,16 @@ Read this first. It explains what the game is, how the code is laid out, how it 
 |---|---|---|
 | `server.js` | ~1900 | **The whole game simulation** (authoritative): HTTP static server + `/api/*`, WebSocket protocol, `class Room` (the world, AI, combat, crafting, boats, saving), 30 Hz tick loop. |
 | `auth.js` | ~120 | Accounts: emailed one-time codes (AWS SES v2 via `@aws-sdk/client-sesv2`), Google and Apple sign-in. Sessions are random tokens; only their SHA-256 is stored. |
-| `public/index.html` | ~160 | Menus, sign-in, HUD markup and CSS. Loads scripts in this order: pixi (CDN), `classes.js`, `recipes.js`, `audio.js`, `game.js`, `extras.js`, `map.js`. |
-| `public/game.js` | ~2000 | Client: procedural textures, PixiJS renderer (water shader, lighting, particles), networking, input (touch joystick + keyboard/mouse), HUD, menus. |
+| `public/index.html` | ~160 | Menus, sign-in, HUD markup and CSS. Loads scripts in this order: pixi (CDN), `classes.js`, `recipes.js`, `audio.js`, `sprites.js`, `game.js`, `extras.js`, `map.js`. |
+| `public/game.js` | ~2000 | Client: procedural textures (ground, effects, and the fallback art for everything that has a sprite), PixiJS renderer (water shader, lighting, particles), networking, input (touch joystick + keyboard/mouse), HUD, menus. |
 | `public/extras.js` | ~460 | Client add-ons for outer islands: loot areas, chests, traders, placeable campfires, bullets/zones/turrets, trader menu, ability button, item slots. `game.js` calls its `x*` hooks. |
 | `public/map.js` | ~140 | Map overlay (button or M): fog of war remembered per room in `localStorage`, zoom/pan. |
 | `public/audio.js` | ~140 | All sound is procedural Web Audio (no audio files). `SFX.init()` must run from a user gesture. |
 | `public/classes.js` | ~70 | **Shared** (server and client) class list: stats, prices in diamonds, looks, abilities, level/XP curve (`GC`). |
 | `public/recipes.js` | ~110 | **Shared** crafting recipes, structure radii, camp-size formula, island shape function (`RC`). The server enforces costs; the client draws menus. |
-| `public/ui/*.webp/png` | | The only image assets (menu backgrounds, buttons, icons). In-game art is drawn in code. |
+| `public/sprites.js` | ~190 | Client: loads the pictures in `public/sprites/` and shows them in place of the code-drawn art (see §5a). `game.js` and `extras.js` call its `SPR.*` hooks. |
+| `public/sprites/*.webp` | | 140 in-game sprites (about 1.2 MB): creatures and the 20 classes as `<name>_front` / `_side` / `_back`, plus structures, resources, boats and tools. |
+| `public/ui/*.webp/png` | | Menu art (backgrounds, buttons, icons). |
 | `public/privacy.html`, `public/delete-account.html` | | Store-required pages served by the game server. |
 | `mobile/` | | Capacitor Android app. `prepare-web.js` copies `public/` into `mobile/www` and injects `window.GAME_BASE` (the server URL from `game-url.txt` or `GAME_URL`) and `window.IN_APP=true`. See `mobile/README.md` and `mobile/store/STORE.md`. |
 | `.github/workflows/android.yml` | | Manual or `android-v*` tag: builds a debug APK, plus a signed `.aab` when the signing secrets exist. |
@@ -77,6 +79,17 @@ node --check server.js && node --check auth.js && for f in public/*.js; do node 
 - Creatures exist only on islands with a player nearby (`ACT_R`, `VIL_ACT`) and are not saved.
 - Pathing: enemies use a distance field over the wall grid (`pathField`/`pathStep`). An enemy blocked for `BLOCK_SEC` attacks the nearest wall/gate for `WALL_SEC`. Cabin doors behave like breakable gates.
 - Balance constants are grouped near the top of `server.js` (lines ~147–435): `WOLF`, `BIG` (bear/mammoth), `MOBS`, `CRIT`, `CHARGER`, `STA` (stamina), `REVIVE`, `VEND` (traveling vendor), `KILL_XP`, `HP` (hits per resource), `STRUCT` (structure HP), etc. Most tuning requests are a one-number change there, or in `classes.js` / `recipes.js`.
+
+### 5a. Sprites (client only)
+
+Most in-game art is a WebP sprite from `public/sprites/`; the code-drawn version in `game.js` / `extras.js` is still built first and stays on screen until the sprite has loaded, or if it is missing. Adding `?nosprites` to the address turns the sprites off. Nothing here touches the server or the protocol.
+
+- **Creatures and players are not turned by their heading.** `SPR.step` picks a picture from the entity's facing (`e.ang`): down = `_front`, up = `_back`, sideways = `_side` (drawn facing left, mirrored for right). Walking is animated in code (bob, tilt, squash; the rabbit hops, the alien hovers); standing still is a slow breathing bob. The table `CRE` in `sprites.js` has each creature's height on screen, where its feet stand, its walk style and where its night eye-glows sit.
+- **Seen from above, still turning with the heading:** scorpion, salamander, vulture and the rowing boat. The sloop and galleon are side-on pictures that only mirror left/right.
+- **Players:** one sprite set per class (`cls_<id>_*`), drawn empty-handed. The class's tool (the code-drawn `FRONTS` item) or the selected pistol/rifle is a separate picture placed at the hand, tucked behind the body in the back view. Swing tools (axe, pick, sword, spear) are sprites turned so the handle runs along +x. Crafted armour is not shown.
+- **Structures:** bench, chest, pot, smelter and spike strip always face the camera; walls and gates still turn in 45° steps. A gate is two gate pictures side by side (there is only a wooden one: rock and metal gates are tinted). Cabin doors/walls, the trap, loot chests, turrets, sharks, drops other than meat, village fires and all effects are still code-drawn.
+- **Fire:** the campfire, pot and smelter pictures are unlit; flames, glow and smoke are still drawn in code on top.
+- **Adding or replacing a sprite:** put a transparent WebP in `public/sprites/`, add its name to the lists at the top of `sprites.js`, and give it a size in the matching table (`CRE`, `RES`, `STR`, `BOATS`, `TOOLS`). The current files were cropped to their visible pixels and resized from 1024 px PNGs with ffmpeg (tools and the from-above creatures were also turned to point right).
 
 ### WebSocket protocol (JSON, `{t: type, ...}`; max payload 1 KB from the client)
 

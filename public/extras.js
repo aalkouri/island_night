@@ -215,7 +215,7 @@ function xInit(m) {
       const c = new PIXI.Container(), sh = new PIXI.Sprite(T_SHADOW); sh.anchor.set(.5); sh.scale.set(.8, .5); sh.y = 8;
       const body = new PIXI.Sprite(T_TRADER[l.trader]); body.anchor.set(.5); body.scale.set(.95); body.rotation = Math.atan2(l.y - l.ty, l.x - l.tx) + 0;
       const tag = new PIXI.Text(RC.TRADERS[l.trader].e + ' ' + RC.TRADERS[l.trader].n, { fontFamily: 'system-ui,sans-serif', fontSize: 13, fontWeight: '800', fill: 0xffe082, stroke: 0x000000, strokeThickness: 4 }); tag.anchor.set(.5, 1); tag.y = -34; tag.resolution = 2;
-      c.addChild(sh, body, tag); c.position.set(l.tx, l.ty); c.zIndex = l.ty; cullList.push({ c, x: l.tx, y: l.ty });
+      c.addChild(sh, body, tag); c.position.set(l.tx, l.ty); c.zIndex = l.ty; cullList.push({ c, x: l.tx, y: l.ty }); SPR.npc(c, body, body.rotation, tag);
     }
   }
 }
@@ -255,7 +255,7 @@ function xVendor(m) {
     const tag = new PIXI.Text(RC.TRADERS[type].e + ' ' + RC.TRADERS[type].n, { fontFamily: 'system-ui,sans-serif', fontSize: 13, fontWeight: '800', fill: 0xffe082, stroke: 0x000000, strokeThickness: 4 }); tag.anchor.set(.5, 1); tag.y = -34; tag.resolution = 2;
     const ex = new PIXI.Text('!', { fontFamily: 'system-ui,sans-serif', fontSize: 22, fontWeight: '900', fill: 0xffd000, stroke: 0x000000, strokeThickness: 4 }); ex.anchor.set(.5, 1); ex.y = -52; ex.visible = false;
     c.addChild(sh, body, tag, ex); c.position.set(x, y); ents.addChild(c);
-    VENDOR = { id, type, c, body, ex, x, y, tx: x, ty: y };
+    VENDOR = { id, type, c, body, ex, x, y, tx: x, ty: y, npc: SPR.npc(c, body, 0, tag) };
     LOOT.push({ id: lid, vend: 1, trader: 0, tx: x, ty: y, x, y, tier: 0, cx: 0, cy: 0, b: 'f', seed: 0, cab: 0, kind: '' });
   }
   VENDOR.tx = x; VENDOR.ty = y; VENDOR.body.rotation = fa / 100; VENDOR.st = st;
@@ -279,7 +279,7 @@ function xSnap(m) {
       const flames = [0, 1, 2].map(() => { const s = new PIXI.Sprite(T_FLAME); s.anchor.set(.5, .9); s.blendMode = BM.ADD; overL.addChild(s); return s; });
       const glow = new PIXI.Sprite(T_GLOW); glow.anchor.set(.5); glow.blendMode = BM.ADD; glow.tint = 0xff8a30; overL.addChild(glow);
       const ring = new PIXI.Sprite(T_RING); ring.anchor.set(.5); ring.blendMode = BM.ADD; ring.tint = 0xffc266; overL.addChildAt(ring, 0);
-      const stones = []; for (let i = 0; i < 10; i++) { const a = i / 10 * TAU, s = new PIXI.Sprite(T_ROCK); s.anchor.set(.5, .8); s.scale.set(.26); s.position.set(c[1] + Math.cos(a) * 30, c[2] + Math.sin(a) * 30 + 4); s.zIndex = s.y; s.tint = 0xbbbbbb; ents.addChild(s); stones.push(s); }
+      const stones = []; for (let i = 0; i < 10; i++) { const a = i / 10 * TAU, s = new PIXI.Sprite(T_ROCK); s.anchor.set(.5, .8); s.scale.set(.26); s.position.set(c[1] + Math.cos(a) * 30, c[2] + Math.sin(a) * 30 + 4); s.zIndex = s.y; s.tint = 0xbbbbbb; ents.addChild(s); stones.push(s); } SPR.pit(c[1], c[2], stones);
       e = campE[c[0]] = { flames, glow, ring, stones, ringR: 0, ph: rnd(0, TAU) };
     }
     if (e.d) {   // sounds for campfires, like the main fire has (only for ones you are near)
@@ -296,7 +296,7 @@ function xSnap(m) {
 }
 function xStep(dt, me) {
   const now = performance.now(), cr = Math.max(W, H) / Z / 2 + 160;
-  if (VENDOR) { const k = Math.min(1, dt * 9); VENDOR.x += (VENDOR.tx - VENDOR.x) * k; VENDOR.y += (VENDOR.ty - VENDOR.y) * k; VENDOR.c.position.set(VENDOR.x, VENDOR.y); VENDOR.c.zIndex = VENDOR.y + 2; VENDOR.ex.visible = VENDOR.st === 2 || VENDOR.st === 6; VENDOR.ex.y = -52 + Math.sin(T * 5) * 3; VENDOR.body.y = Math.sin(T * 9) * (VENDOR.st === 1 || VENDOR.st === 3 || VENDOR.st === 5 ? 1.5 : .3); }
+  if (VENDOR) { const k = Math.min(1, dt * 9); VENDOR.x += (VENDOR.tx - VENDOR.x) * k; VENDOR.y += (VENDOR.ty - VENDOR.y) * k; VENDOR.c.position.set(VENDOR.x, VENDOR.y); VENDOR.c.zIndex = VENDOR.y + 2; VENDOR.ex.visible = VENDOR.st === 2 || VENDOR.st === 6; VENDOR.ex.y = -52 + Math.sin(T * 5) * 3; VENDOR.body.y = Math.sin(T * 9) * (VENDOR.st === 1 || VENDOR.st === 3 || VENDOR.st === 5 ? 1.5 : .3); VENDOR.npc.ang = VENDOR.body.rotation; VENDOR.npc.sp = VENDOR.st === 1 || VENDOR.st === 3 || VENDOR.st === 5 ? 60 : 0; }
   for (const f of CAB_FIRES) f.g.alpha = .75 + Math.sin(T * 7 + f.ph) * .12 + Math.sin(T * 13 + f.ph * 2) * .08;
   const dayK = S && S.c !== undefined ? 1 - darkness(S.c) / .74 : 1;   // window light only while the sun is up
   for (const c of CABINS) { const inside = me && Math.abs(me.x - c.x) < c.w / 2 + 4 && Math.abs(me.y - c.y) < c.h / 2 + 4; c.a += ((inside ? .08 : 1) - c.a) * Math.min(1, dt * 6); c.roof.alpha = c.a;
