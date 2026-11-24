@@ -1863,6 +1863,7 @@ $('go').onclick = () => {
   };
   ws.onmessage = e => {
     const m = JSON.parse(e.data);
+    if (m.t === 'err' && m.m === 'dup') { ws.onclose = null; ws.close(); ws = null; try { sessionStorage.removeItem('rejoin'); } catch (e) { } alert('This character signed in on another tab or device, so this one was disconnected.'); location.reload(); return; }
     if (m.t === 'err') { if (m.m === 'auth') logoutUI('Your session expired. Please sign in again.'); else { $('err').textContent = m.m; ws.close(); ws = null; } }
     else if (m.t === 'init') {
       myId = m.id; RR = m.R; ISL = m.isl ? m.isl.slice(1) : []; roomCode = m.room; GEAR = m.gear || {}; buildWorld(m.res); if (m.prof) { PF.owned = m.prof.owned; PF.xp = m.prof.xp || PF.xp; PF.bn = m.prof.bn || 0; PF.abil = m.prof.abil || []; setDia(m.prof.d); } window.xInit && xInit(m);

@@ -1806,8 +1806,16 @@ wss.on('connection', ws => {
       if (!rc) rc = code();
       if (!rooms.has(rc)) rooms.set(rc, new Room(rc));
       room = rooms.get(rc);
-      if (room.players.size >= MAXP) { send(ws, { t: 'err', m: 'Room is full' }); return; }
-      const ghost = email && [...room.players.values()].find(p => p.ghost && p.email === email);   // you dropped out in danger and are back within the grace period
+      // one character per account: signing in again (another tab or device) takes over; the old connection is told to stop
+      let live = null;
+      for (const [, rm] of rooms) for (const op of [...rm.players.values()]) if (op.email === email && op.ws !== ws && !op.ghost) {
+        const old = op.ws; op.ws = { readyState: 3, send() { } };   // its own close handler is now a no-op
+        try { send(old, { t: 'err', m: 'dup' }); old.close(); } catch (e) { }
+        if (rm === room) live = op; else { rm.stash(op); rm.releaseBoat(op); rm.players.delete(op.id); }
+      }
+      for (const [, rm] of rooms) if (rm !== room) for (const op of [...rm.players.values()]) if (op.email === email && op.ghost) { rm.stash(op); rm.releaseBoat(op); rm.players.delete(op.id); }   // a lingering "ghost" of you elsewhere goes too
+      if (!live && room.players.size >= MAXP) { send(ws, { t: 'err', m: 'Room is full' }); return; }
+      const ghost = live || (email && [...room.players.values()].find(p => p.ghost && p.email === email));   // you dropped out in danger (or are playing in another tab) and are back: continue the same character
       if (ghost) { me = ghost; me.ghost = 0; me.ws = ws; me.name = name; } else me = room.add(ws, name, cls, pf, email);
       send(ws, { t: 'init', id: me.id, room: rc, R, cls, gear: me.gear, prof: view(pf), res: room.res.map(r => [r.k, Math.round(r.x), Math.round(r.y)]), isl: room.islands.map(i => [i.x, i.y, i.r, i.b, i.s || 0]), loot: room.loot.filter(l => !l.visit).map(l => [l.id, l.x, l.y, l.b, l.seed, l.tier, l.cx, l.cy, l.trader, l.tx, l.ty, l.cab || 0, l.kind || '']), cab: (room.cabins || []).map(c => [c.id, c.isl, c.x, c.y, c.w, c.h, c.doors.map(d => [d.side, d.pos]), c.divs, c.decor]), vg: (room.villages || []).map(v => [v.id, v.x, v.y, v.seed, v.cult ? 1 : 0]), lv: (room.lava || []).map(l => [l.x, l.y, l.r]) });
     } else if (m.t === 'craft' && me) {
