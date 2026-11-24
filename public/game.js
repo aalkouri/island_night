@@ -510,7 +510,20 @@ function resize() {
   rt = PIXI.RenderTexture.create({ width: Math.ceil(W * LS), height: Math.ceil(H * LS) });
   lightSpr.texture = rt; lightSpr.scale.set(1 / LS);
 }
-addEventListener('resize', resize); resize();
+// Rotating the phone: browsers (iOS especially) report the old size for a moment, so the canvas is sized by hand, re-checked a few times while the rotation settles, and only rebuilt when the size really changed.
+app.resizeTo = null;
+let lastWH = '';
+function fit() {
+  const w = Math.round(innerWidth), h = Math.round(innerHeight); if (!w || !h) return;
+  try { scrollTo(0, 0); } catch (e) { }
+  if (w + 'x' + h === lastWH) return; lastWH = w + 'x' + h;
+  app.renderer.resize(w, h); resize();
+}
+function refit() { fit(); for (const t of [60, 200, 500, 1000]) setTimeout(fit, t); }
+addEventListener('resize', refit); addEventListener('orientationchange', refit); addEventListener('pageshow', refit);
+if (window.visualViewport) visualViewport.addEventListener('resize', refit);
+if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', refit);
+fit();
 $('zoomIn').addEventListener('click', () => setZoom(UZ * 1.15)); $('zoomOut').addEventListener('click', () => setZoom(UZ / 1.15));
 
 // ---------- world building (after server init) ----------
