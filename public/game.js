@@ -512,6 +512,16 @@ function resize() {
 }
 // Rotating the phone: browsers (iOS especially) report the old size for a moment, so the canvas is sized by hand, re-checked a few times while the rotation settles, and only rebuilt when the size really changed.
 app.resizeTo = null;
+// iPad/iPhone Safari ignores user-scalable=no: two thumbs on the screen (stick + ATTACK) can pinch-zoom the whole page, which shifts the HUD off the edge and pushes the buttons out of view. Block page pinch, and snap back if the page ever ends up zoomed.
+['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, { passive: false });
+function unzoom() {
+  const vv = window.visualViewport; if (!vv || (Math.abs(vv.scale - 1) < 0.02 && Math.abs(vv.offsetLeft) < 2 && Math.abs(vv.offsetTop) < 2)) return;
+  const m = document.querySelector('meta[name=viewport]'); if (m) { m.setAttribute('content', 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'); setTimeout(() => m.setAttribute('content', 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover'), 120); }
+  try { scrollTo(0, 0); } catch (e) { }
+}
+if (window.visualViewport) { visualViewport.addEventListener('resize', unzoom); visualViewport.addEventListener('scroll', unzoom); }
+setInterval(unzoom, 2000);
 let lastWH = '';
 function fit() {
   const w = Math.round(innerWidth), h = Math.round(innerHeight); if (!w || !h) return;
