@@ -1993,10 +1993,11 @@ function currentAim() {   // the direction you are aiming right now (aim stick, 
 function readInput() {
   let dx = 0, dy = 0;
   let rn = 0; if (actBlock && !(act || keys[' '] || keys.e)) actBlock = false;
-  if (joy) { dx = (joy.x - joy.ox) / 55; dy = (joy.y - joy.oy) / 55; const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } if (m < .12) dx = dy = 0; else if (m > 1.15) rn = Math.min(1, (m - 1.15) / .75); }   // past the ring = run, faster the further you push
+  if (joy) { const px = joy.x - joy.ox, py = joy.y - joy.oy, d = Math.hypot(px, py), m = d / 55;   // responsive stick: full walking speed after only 24 px of drag (was 55), a 3 px dead zone, and the direction is exact
+    if (d < 3) dx = dy = 0; else { const k = Math.min(1, d / 24) / d; dx = px * k; dy = py * k; if (m > 1.15) rn = Math.min(1, (m - 1.15) / .75); } }   // past the ring = run, faster the further you push
   if (keys.a || keys.arrowleft) dx -= 1; if (keys.d || keys.arrowright) dx += 1; if (keys.w || keys.arrowup) dy -= 1; if (keys.s || keys.arrowdown) dy += 1;
   if (keys.shift && (dx || dy)) rn = 1;
   const aim = currentAim(), nowT = performance.now();
   return { dx, dy, am: aim === null ? 0 : 1, aim: aim === null ? 0 : Math.round(aim * 100) / 100, rn: Math.round(rn * 100) / 100, act: !placingId && !actBlock && (act || keys[' '] || keys.e) ? 1 : 0, hit: !placingId && !fishOpen && (hit || keys.q || keys.f || keys.j || mouse.down || nowT < hitPulse) ? 1 : 0 };   // no attacking while placing something
 }
-setInterval(() => { if (ws && ws.readyState === 1 && myId) ws.send(JSON.stringify(Object.assign({ t: 'in' }, readInput()))); }, 50);
+setInterval(() => { if (ws && ws.readyState === 1 && myId) ws.send(JSON.stringify(Object.assign({ t: 'in' }, readInput()))); }, 25);   // 40 messages a second: the server steps at 30 Hz, so it always has the freshest stick position
