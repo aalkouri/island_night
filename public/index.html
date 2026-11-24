@@ -40,16 +40,18 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b1a2a;color:#fff;fon
 #jbase{width:110px;height:110px;border:3px solid #fff6;background:#ffffff12;box-shadow:0 0 0 46px #ffb74d14,0 0 0 48px #ffb74d33}
 #jknob{width:44px;height:44px;background:#fff8}
 /* main menu: forest/campfire scene with a hanging scroll; frames are 9-slice border-images so they stretch cleanly */
-#lobby{position:fixed;inset:0;background:#0b1a2a url(ui/bg.webp) center bottom/cover no-repeat;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 16px max(18vh,110px);box-sizing:border-box;overflow:auto;text-shadow:0 1px 3px #000a}
-#scroll{display:flex;flex-direction:column;align-items:center;gap:10px;width:min(340px,100%);box-sizing:border-box;border-style:solid;border-width:22px 16px 24px;border-image:url(ui/panel.webp) 44 30 46 30 fill/22px 16px 24px stretch;padding:14px 12px 8px;filter:drop-shadow(0 10px 24px #000b)}
-#lobby h1{margin:0;font-size:28px;display:flex;align-items:center;gap:8px;letter-spacing:.01em}
-#lobby h1 img{height:30px}
-#lobby .tag{opacity:.8;text-align:center;font-size:13px;line-height:1.35;margin-top:-4px}
-#lobby .field{font:600 17px system-ui,sans-serif;padding:9px 12px;width:100%;box-sizing:border-box;text-align:center;color:#fff;background:none;outline:none;border-style:solid;border-width:10px 22px;border-image:url(ui/field.webp) 40 82 fill/10px 22px stretch;text-shadow:0 1px 2px #000}
-#lobby .field::placeholder{color:#fff8}
-#lobby .field:focus{filter:brightness(1.25)}
-#go{font-size:20px;letter-spacing:.06em;width:150px;height:54px;padding:0 0 4px;border:0;background:url(ui/play.webp) center/100% 100% no-repeat;color:#fff;font-weight:800;text-shadow:0 2px 3px #0008;cursor:pointer;transition:transform .06s,filter .15s}
-#go:hover{filter:brightness(1.1)}#go:active{transform:scale(.96)}
+#lobby,#login.menuBg{position:fixed;inset:0;background:#0b1a2a url(ui/bg.webp) center bottom/cover no-repeat;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 16px max(18vh,110px);box-sizing:border-box;overflow:auto;text-shadow:0 1px 3px #000a}
+#scroll,.scroll{display:flex;flex-direction:column;align-items:center;gap:10px;width:min(340px,100%);box-sizing:border-box;border-style:solid;border-width:22px 16px 24px;border-image:url(ui/panel.webp) 44 30 46 30 fill/22px 16px 24px stretch;padding:14px 12px 8px;filter:drop-shadow(0 10px 24px #000b)}
+#lobby h1,#login h1{margin:0;font-size:28px;display:flex;align-items:center;gap:8px;letter-spacing:.01em}
+#lobby h1 img,#login h1 img{height:30px}
+#lobby .tag,#login .tag{opacity:.8;text-align:center;font-size:13px;line-height:1.35;margin-top:-4px}
+.field{font:600 17px system-ui,sans-serif;padding:9px 12px;width:100%;box-sizing:border-box;text-align:center;color:#fff;background:none;outline:none;border-style:solid;border-width:10px 22px;border-image:url(ui/field.webp) 40 82 fill/10px 22px stretch;text-shadow:0 1px 2px #000}
+.field::placeholder{color:#fff8}
+.field:focus{filter:brightness(1.25)}
+#go,.playBtn{font-size:20px;letter-spacing:.06em;width:150px;height:54px;padding:0 0 4px;border:0;background:url(ui/play.webp) center/100% 100% no-repeat;color:#fff;font-weight:800;text-shadow:0 2px 3px #0008;cursor:pointer;transition:transform .06s,filter .15s}
+#go:hover,.playBtn:hover{filter:brightness(1.1)}#go:active,.playBtn:active{transform:scale(.96)}
+.playBtn{font-size:16px;letter-spacing:.03em;width:200px}.playBtn:disabled{opacity:.6}
+#login .sub{opacity:.75;font-size:11px;text-align:center}
 #err{color:#ff8a80;min-height:18px;font-size:13px;text-align:center}
 #runres{color:#ffe082;font-weight:700;font-size:14px;text-align:center}
 #runres:empty{display:none}
@@ -82,7 +84,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b1a2a;color:#fff;fon
 .dlg input{font-size:16px;padding:10px;border-radius:8px;border:0;width:90%;text-align:center;margin-top:8px}
 #myCode{font-family:ui-monospace,monospace;font-size:15px;word-break:break-all;background:#0007;padding:8px;border-radius:8px;margin:8px 0}
 .mini.gray{background:#455a64}
-#stepEmail,#stepCode{display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center}
+#stepEmail,#stepCode{display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;width:100%}
 .mini:disabled{opacity:.6}
 
 #credit{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:13px;letter-spacing:.04em;opacity:.65}
@@ -122,25 +124,27 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b1a2a;color:#fff;fon
   <div id="grid"></div>
 </div>
 <div class="ov" id="buy" style="align-items:center;justify-content:center;z-index:30"><div class="dlg"><div id="buyTxt"></div><div class="btns"><button class="mini" id="buyGo">Buy</button><button class="mini gray" id="buyNo">Cancel</button></div></div></div>
-<div class="ov" id="login" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:16px;z-index:40;background:#0b1a2a">
-  <h1 style="margin:0;font-size:32px">🌙 Island Night</h1>
-  <div style="opacity:.85;text-align:center;max-width:320px;font-size:14px">Sign in to play. Your Diamonds and classes are saved to your account.</div>
+<div class="ov menuBg" id="login" style="display:flex;z-index:40">
+ <div class="scroll">
+  <h1><img src="ui/moon.webp" alt=""> Island Night</h1>
+  <div class="tag">Sign in to play. Your Diamonds and classes are saved to your account.</div>
   <div id="gwrap" style="display:none;text-align:center"><div id="gbtn" style="min-height:44px"></div></div>
   <div id="awrap" style="display:none;text-align:center"><div id="appleid-signin" data-color="black" data-border="true" data-border-radius="22" data-type="sign in" data-width="280" data-height="40" style="width:280px;height:40px"></div></div>
-  <div id="orline" style="display:none;opacity:.6;font-size:12px;margin:2px 0">or use your email</div>
+  <div id="orline" style="display:none;opacity:.7;font-size:12px;margin:2px 0">or use your email</div>
   <div id="stepEmail">
-    <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="Your email address" maxlength="254" style="font-size:18px;padding:12px;border-radius:10px;border:0;width:min(300px,80vw);text-align:center">
-    <button id="sendCode" class="mini" style="font-size:17px;padding:12px 28px">Email me a code</button>
+    <input id="email" class="field" type="email" inputmode="email" autocomplete="email" placeholder="Your email address" maxlength="254">
+    <button id="sendCode" class="playBtn">EMAIL ME A CODE</button>
   </div>
   <div id="stepCode" style="display:none">
     <div style="font-size:14px">We emailed a 6-digit code to<br><b id="sentTo"></b></div>
-    <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123456" style="font-size:24px;letter-spacing:6px;padding:12px;border-radius:10px;border:0;width:min(220px,70vw);text-align:center">
-    <button id="verify" class="mini" style="font-size:17px;padding:12px 28px">Verify &amp; play</button>
+    <input id="code" class="field" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123456" style="font-size:22px;letter-spacing:6px">
+    <button id="verify" class="playBtn">VERIFY &amp; PLAY</button>
     <div class="link" id="backEmail">Use a different email / resend</div>
   </div>
-  <div style="opacity:.55;font-size:11px;text-align:center;max-width:300px">We only use your email to sign you in and save your progress.</div>
-  <div id="lmsg" style="color:#ff8a80;min-height:20px;text-align:center;max-width:320px;font-size:14px"></div>
-  <div style="position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:13px;letter-spacing:.04em;opacity:.65">Game by Amelia Alkouri</div>
+  <div id="lmsg" style="color:#ff8a80;min-height:18px;text-align:center;font-size:13px"></div>
+  <div class="sub">We only use your email to sign you in and save your progress.</div>
+ </div>
+  <div id="credit2" style="position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:13px;letter-spacing:.04em;opacity:.65">Game by Amelia Alkouri</div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
 <script src="classes.js"></script>

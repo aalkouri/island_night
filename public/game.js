@@ -909,17 +909,34 @@ function syncSharks(m) {
       const c = new PIXI.Container(), wake = new PIXI.Graphics(), rot = new PIXI.Container(), shadow = new PIXI.Graphics(), tail = new PIXI.Sprite(T_SHARK_TAIL), body = new PIXI.Sprite(T_SHARK), jaws = new PIXI.Graphics(), foam = new PIXI.Graphics();
       shadow.beginFill(0x04202f, .3); shadow.drawEllipse(-6, 10, 118, 26); shadow.endFill();
       tail.anchor.set(1, .5); tail.position.set(-98, 0); body.anchor.set(.5, .5); jaws.alpha = 0;
-      rot.addChild(shadow, tail, body, jaws, foam); rot.scale.set(.74); c.addChild(wake, rot); ents.addChild(c);
-      e = sharkE[s[0]] = { c, rot, tail, body, jaws, foam, wake, x: s[1], y: s[2], tx: s[1], ty: s[2], a: s[3] / 100, ar: s[3] / 100, ph: rnd(0, TAU), age: 0, bite: 0 }; c.position.set(e.x, e.y);
+      const fin = new PIXI.Sprite(T_FIN); fin.anchor.set(.5, .95);
+      rot.addChild(shadow, tail, body, jaws, foam); rot.scale.set(.74); rot.visible = false; c.addChild(wake, rot, fin); ents.addChild(c);
+      e = sharkE[s[0]] = { c, rot, tail, body, jaws, foam, wake, fin, x: s[1], y: s[2], tx: s[1], ty: s[2], a: s[3] / 100, ar: s[3] / 100, ph: rnd(0, TAU), age: 0, bite: 0, mode: 'fin', mt: 0 }; c.position.set(e.x, e.y);   // it arrives as just a fin, and leaps out of the water once it is close
     }
+    if (s[5] && e.mode !== 'dive') { e.mode = 'dive'; e.mt = 0; e.splashed = 0; }   // leaving: leap up and crash back down
     e.tx = s[1]; e.ty = s[2]; e.a = s[3] / 100; if (s[4] && !e.bite) { e.bite = .5; burst(e.x, e.y, 14, 0xffffff, 170, false, .16); burst(e.x, e.y, 6, 0xb71c1c, 90, false, .1); } if (!s[4]) e.bite = Math.max(0, e.bite - .1);
   }
   for (const id in sharkE) if (!seen[id]) { sharkE[id].c.destroy({ children: true }); delete sharkE[id]; }
 }
+const sharkRip = [];   // expanding rings on the water where a shark broke the surface
+function sharkSplash(e, big) {
+  burst(e.x, e.y, big ? 26 : 18, 0xffffff, big ? 260 : 200, false, .2); burst(e.x, e.y, 10, 0x9fd8ef, 150, false, .16);
+  for (let i = 0; i < (big ? 16 : 10); i++) emit(pfx, T_GLOW, e.x + rnd(-30, 30), e.y + rnd(-14, 14), rnd(-80, 80), rnd(-260, -130), rnd(.5, .8), .15, .05, 0xffffff, .9, false, 520);   // spray thrown up
+  for (let i = 0; i < 2; i++) { const g = new PIXI.Graphics(); g.position.set(e.x, e.y); pfx.addChild(g); sharkRip.push({ g, t: -i * .18, big }); }
+  const me = ents2['p' + myId]; if (me) SFX.splash(Math.hypot(e.x - me.x, e.y - me.y), e.x - me.x, big);
+}
 function stepSharkFx(dt) {
+  for (let i = sharkRip.length - 1; i >= 0; i--) { const r = sharkRip[i]; r.t += dt; if (r.t >= 1.3) { r.g.destroy(); sharkRip.splice(i, 1); continue; } if (r.t < 0) continue; const R = (r.big ? 30 : 22) + r.t * (r.big ? 110 : 80); r.g.clear(); r.g.lineStyle(3, 0xffffff, .6 * (1 - r.t / 1.3)); r.g.drawEllipse(0, 0, R, R * .6); }
   for (const id in sharkE) {
-    const e = sharkE[id], k = Math.min(1, dt * 9); e.age += dt; const ox = e.x, oy = e.y; e.x += (e.tx - e.x) * k; e.y += (e.ty - e.y) * k;
+    const e = sharkE[id], k = Math.min(1, dt * 9); e.age += dt; e.mt += dt; const ox = e.x, oy = e.y; e.x += (e.tx - e.x) * k; e.y += (e.ty - e.y) * k;
     e.c.position.set(e.x, e.y); e.c.zIndex = e.y + 200; e.c.alpha = Math.min(1, e.age * 2);
+    if (e.mode === 'fin') { let nd = 1e9; for (const kk in ents2) { const q = ents2[kk]; if (q.kind === 'p') nd = Math.min(nd, Math.hypot(q.x - e.x, q.y - e.y)); } if (nd < 380 || e.bite > 0) { e.mode = 'breach'; e.mt = 0; e.splashed = 0; sharkSplash(e, false); } }   // close now: it bursts out of the water
+    { const BS = .74; let sc = BS, lift = 0, ra = 1, fa = 0;
+      if (e.mode === 'fin') { ra = 0; fa = 1; }
+      else if (e.mode === 'breach') { const u = Math.min(1, e.mt / .75), j = Math.sin(u * Math.PI); sc = BS * (1 + .35 * j); lift = -26 * j; ra = Math.min(1, u * 3); fa = Math.max(0, 1 - u * 4); if (u > .85 && !e.splashed) { e.splashed = 1; burst(e.x, e.y, 12, 0xffffff, 160, false, .14); } if (u >= 1) e.mode = 'body'; }
+      else if (e.mode === 'dive') { const u = Math.min(1, e.mt / 1.1), j = Math.sin(Math.min(1, u / .62) * Math.PI); sc = BS * (1 + .4 * j) * (u > .55 ? Math.max(.5, 1 - (u - .55) * 1.4) : 1); lift = -30 * j; ra = u < .58 ? 1 : Math.max(0, 1 - (u - .58) / .2); if (u >= .58 && !e.splashed) { e.splashed = 1; sharkSplash(e, true); } }   // leap, then crash back under
+      e.rot.visible = ra > .01; e.rot.alpha = ra; e.rot.scale.set(sc); e.rot.position.y = lift; e.fin.visible = fa > .01; e.fin.alpha = fa; e.fin.y = Math.sin(T * 3 + e.ph) * 1.5; e.fin.scale.set(.9 + Math.sin(T * 5 + e.ph) * .03);
+      e.wake.visible = !(e.mode === 'dive' && e.splashed); }
     { let da = ((e.a - e.ar + Math.PI) % TAU + TAU) % TAU - Math.PI; e.ar += da * Math.min(1, dt * 6); }   // turns smoothly toward where it is heading
     const sw = Math.sin(T * 6.5 + e.ph), fast = Math.hypot(e.x - ox, e.y - oy) > .5 ? 1 : .35;
     e.rot.rotation = e.ar + sw * .035 * fast; e.tail.rotation = Math.sin(T * 6.5 + e.ph - 1.1) * .34 * fast; e.body.rotation = Math.sin(T * 6.5 + e.ph - .5) * .04 * fast;
@@ -1046,6 +1063,7 @@ function syncStructs(m, first) {
     if ((t[7] || 0) !== e.rot) { e.rot = t[7] || 0; e.rotc.rotation = e.rot * Math.PI / 4; }
     if (t[1] === 'smelter') { const pq = e.smelt ? e.smelt[0] : t[6][0]; if (t[6][0] > pq) { const d = me ? Math.hypot(me.x - t[2], me.y - t[3]) : 0; SFX.smelterStart(d, me ? t[2] - me.x : 0); } e.smelt = t[6]; }
     else e.items = t[6];
+    { const br = t[1] === 'gate' && t[5] > 0 && t[4] <= 0; if (br && !e.broke && !first) { const d = me ? Math.hypot(me.x - t[2], me.y - t[3]) : 0; SFX.rockbreak(d, me ? t[2] - me.x : 0); burst(t[2], t[3] - 10, 16, 0xb98349, 160, false, .15); } e.broke = br; }   // a cabin door smashed in: it hangs open, dark and splintered, until morning
     e.hpv = t[4]; e.x = t[2]; e.y = t[3];
   }
   for (const id in structE) if (!seen[id]) {
@@ -1057,7 +1075,7 @@ function stepStructs(dt) {
   for (const id in structE) {
     const e = structE[id];
     if (e.t < 1) { e.t = Math.min(1, e.t + dt * 4); const u = e.t, b = 1 + 2.2 * Math.pow(u - 1, 3) + 1.2 * Math.pow(u - 1, 2); e.spr.scale.set(e.base * Math.max(.1, b)); }
-    e.flash = Math.max(0, e.flash - dt); e.spr.tint = e.flash > 0 ? 0xffaaaa : 0xffffff;
+    e.flash = Math.max(0, e.flash - dt); e.spr.tint = e.flash > 0 ? 0xffaaaa : e.broke ? 0x6b5a4a : 0xffffff; e.spr.alpha = e.broke ? .7 : 1;
     if (e.k === 'smelter') {
       const sm = e.smelt || [0, 0], working = sm[0] > 0;
       if (!e.prog) { e.prog = new PIXI.Graphics(); e.prog.y = -66; e.c.addChild(e.prog); e.qt = new PIXI.Text('', { fontFamily: 'system-ui,sans-serif', fontSize: 13, fontWeight: '800', fill: 0xffe082, stroke: 0x000000, strokeThickness: 3 }); e.qt.anchor.set(.5, 1); e.qt.y = -72; e.qt.resolution = 2; e.c.addChild(e.qt); e.pv = 0; e.glow = new PIXI.Sprite(T_GLOW); e.glow.anchor.set(.5); e.glow.blendMode = BM.ADD; e.glow.tint = 0xff8a1c; overL.addChild(e.glow); }

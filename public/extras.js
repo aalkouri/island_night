@@ -100,6 +100,14 @@ function xVillages(m) {
 // ---------- cabins: log walls and a plank floor on the ground; the roof sits on top and fades out while you are inside ----------
 const CABINS = [];
 const CAB_FIRES = [];   // fireplace glows, so they can flicker
+function drawBeams(c) {   // sunlight through each window: a widening shaft across the floor, its far end shifted by w.sh
+  const g = c.beams; g.clear();
+  for (const o of c.wins) {
+    const P = (u, v) => [o.cx + o.ix * u + o.tx * v, o.cy + o.iy * u + o.ty * v], poly = (hw0, hw1, D, sh, col, al) => { const a = P(11, -hw0), b = P(11, hw0), q = P(D, hw1 + sh), d = P(D, -hw1 + sh); g.beginFill(col, al); g.drawPolygon([a[0], a[1], b[0], b[1], q[0], q[1], d[0], d[1]]); g.endFill(); };
+    poly(23, 40, o.D, o.sh, 0xffe9a0, .11); poly(14, 22, o.D * .8, o.sh * .8, 0xfff4c8, .10);
+    const e = P(o.D * .85, o.sh * .85); g.beginFill(0xfff0b0, .07); g.drawEllipse(e[0], e[1], 34, 34); g.endFill();   // a soft bright spot where the beam lands
+  }
+}
 function xCabins(m) {
   for (const c of CABINS) { try { c.roof.destroy({ children: true }); } catch (e) { } } CABINS.length = 0; CAB_FIRES.length = 0;
   const DW = 104, GAPW = 84;   // a door is 104 wide (a gate); inner doorways are open gaps
@@ -122,21 +130,21 @@ function xCabins(m) {
     for (const [o, pos, a0, a1, gap] of divs) span(a0, a1, [[gap, GAPW]], (a, b) => o === 1 ? bar(x + pos, y + a, x + pos, y + b, T - 8) : bar(x + a, y + pos, x + b, y + pos, T - 8));
     ground.addChild(wl);
     // ---- windows in the outer walls (clear of doors and of where inner walls meet them) ----
-    const wd = new PIXI.Graphics(), lightG = new PIXI.Graphics();
+    const wd = new PIXI.Graphics(), beams = new PIXI.Graphics(), wins = [];
     for (const [n, len] of [[0, w], [2, w], [3, h], [1, h]]) {
       const horiz = n % 2 === 0, junc = divs.filter(d => (horiz ? d[0] === 1 : d[0] === 0)).map(d => d[1]), dts = doors.filter(d => d[0] === n).map(d => d[1]);
       for (let t = -len / 2 + 120; t < len / 2 - 90; t += 170 + rng() * 60) {
         if (dts.some(q => Math.abs(q - t) < DW / 2 + 52) || junc.some(q => Math.abs(q - t) < 56)) continue;
         const cx = horiz ? x + t : (n === 3 ? x - hw : x + hw), cy = horiz ? (n === 0 ? y - hh : y + hh) : y + t, ix = n === 3 ? 1 : n === 1 ? -1 : 0, iy = n === 0 ? 1 : n === 2 ? -1 : 0;   // (ix, iy): into the cabin
         const lw = horiz ? 46 : 18, lh = horiz ? 18 : 46;
-        lightG.beginFill(0xffe9a0, .10); lightG.drawRect(horiz ? cx - 23 : (ix > 0 ? cx : cx - 40), horiz ? (iy > 0 ? cy : cy - 40) : cy - 23, horiz ? 46 : 40, horiz ? 40 : 46); lightG.endFill();   // daylight spilling onto the floor
+        wins.push({ cx, cy, ix, iy, tx: horiz ? 1 : 0, ty: horiz ? 0 : 1, D: Math.min(170, (horiz ? h : w) * .55), sh: 0 });   // daylight beam: drawn each frame (it swings toward you while you are inside)
         wd.beginFill(0x2b1a0b); wd.drawRect(cx - lw / 2 - 3, cy - lh / 2 - 3, lw + 6, lh + 6); wd.endFill();
         wd.beginFill(0xa9d8ee, .9); wd.drawRect(cx - lw / 2, cy - lh / 2, lw, lh); wd.endFill(); wd.beginFill(0xffffff, .35); wd.drawRect(cx - lw / 2 + 2, cy - lh / 2 + 2, horiz ? lw * .45 : 5, horiz ? 4 : lh * .45); wd.endFill();
         wd.lineStyle(1.6, 0x2b1a0b, .9); if (horiz) { wd.moveTo(cx, cy - lh / 2); wd.lineTo(cx, cy + lh / 2); wd.moveTo(cx - lw / 2, cy); wd.lineTo(cx + lw / 2, cy); } else { wd.moveTo(cx - lw / 2, cy); wd.lineTo(cx + lw / 2, cy); wd.moveTo(cx, cy - lh / 2); wd.lineTo(cx, cy + lh / 2); } wd.lineStyle(0);
         wd.beginFill(0x6e4420); if (horiz) { wd.drawRect(cx - lw / 2 - 11, cy - lh / 2 - 3, 8, lh + 6); wd.drawRect(cx + lw / 2 + 3, cy - lh / 2 - 3, 8, lh + 6); } else { wd.drawRect(cx - lw / 2 - 3, cy - lh / 2 - 11, lw + 6, 8); wd.drawRect(cx - lw / 2 - 3, cy + lh / 2 + 3, lw + 6, 8); } wd.endFill();   // shutters
       }
     }
-    ground.addChild(lightG); ground.addChild(wd);
+    ground.addChild(beams); ground.addChild(wd);
     // ---- decoration: rugs first, then furniture ----
     const dc = new PIXI.Graphics(), pal = [0x8c2f39, 0x2f5d8c, 0x3d7a4a, 0x8a6a2f, 0x5b3a78];
     const shadow = (cx, cy, fw, fh) => { dc.beginFill(0x000000, .22); dc.drawRoundedRect(cx - fw / 2 + 4, cy - fh / 2 + 5, fw, fh, 4); dc.endFill(); };
@@ -185,7 +193,7 @@ function xCabins(m) {
     rg.lineStyle(0); rg.beginFill(0x000000, .3); rg.drawRect(chx - 12, chy - 10, 30, 30); rg.endFill(); rg.beginFill(0x6f6a68); rg.drawRect(chx - 15, chy - 15, 30, 30); rg.endFill(); rg.beginFill(0x8c8684); rg.drawRect(chx - 15, chy - 15, 30, 8); rg.endFill(); rg.beginFill(0x2a2424); rg.drawRect(chx - 9, chy - 9, 18, 18); rg.endFill();
     rg.lineStyle(1.5, 0x3a3434, .8); rg.moveTo(chx - 15, chy - 1); rg.lineTo(chx + 15, chy - 1); rg.moveTo(chx, chy - 15); rg.lineTo(chx, chy - 1);
     roof.addChild(rg); roof.zIndex = 1e6; roof.alpha = 1;
-    const cab = { id, x, y, w, h, roof, a: 1, chx, chy }; CABINS.push(cab); cullList.push({ c: roof, x, y, m: Math.max(w, h) / 2 + 40 });
+    const cab = { id, x, y, w, h, roof, a: 1, chx, chy, beams, wins }; drawBeams(cab); CABINS.push(cab); cullList.push({ c: roof, x, y, m: Math.max(w, h) / 2 + 40 });
   }
 }
 function xInit(m) {
@@ -290,7 +298,12 @@ function xStep(dt, me) {
   const now = performance.now(), cr = Math.max(W, H) / Z / 2 + 160;
   if (VENDOR) { const k = Math.min(1, dt * 9); VENDOR.x += (VENDOR.tx - VENDOR.x) * k; VENDOR.y += (VENDOR.ty - VENDOR.y) * k; VENDOR.c.position.set(VENDOR.x, VENDOR.y); VENDOR.c.zIndex = VENDOR.y + 2; VENDOR.ex.visible = VENDOR.st === 2 || VENDOR.st === 6; VENDOR.ex.y = -52 + Math.sin(T * 5) * 3; VENDOR.body.y = Math.sin(T * 9) * (VENDOR.st === 1 || VENDOR.st === 3 || VENDOR.st === 5 ? 1.5 : .3); }
   for (const f of CAB_FIRES) f.g.alpha = .75 + Math.sin(T * 7 + f.ph) * .12 + Math.sin(T * 13 + f.ph * 2) * .08;
-  for (const c of CABINS) { const inside = me && Math.abs(me.x - c.x) < c.w / 2 + 4 && Math.abs(me.y - c.y) < c.h / 2 + 4; c.a += ((inside ? .08 : 1) - c.a) * Math.min(1, dt * 6); c.roof.alpha = c.a; if (c.a > .6 && Math.abs(c.chx - camX) < cr && Math.abs(c.chy - camY) < cr && Math.random() < dt * 2.4) emit(pfx, T_GLOW, c.chx + rnd(-4, 4), c.chy - 8, rnd(2, 12), rnd(-36, -22), 2.6, .08, .5, 0xd2d2d2, .3, false, 0); }   // the roof goes see-through while you are inside; the chimney smokes while it is on
+  const dayK = S && S.c !== undefined ? 1 - darkness(S.c) / .74 : 1;   // window light only while the sun is up
+  for (const c of CABINS) { const inside = me && Math.abs(me.x - c.x) < c.w / 2 + 4 && Math.abs(me.y - c.y) < c.h / 2 + 4; c.a += ((inside ? .08 : 1) - c.a) * Math.min(1, dt * 6); c.roof.alpha = c.a;
+    if (Math.abs(c.x - camX) < cr + c.w / 2 && Math.abs(c.y - camY) < cr + c.h / 2) {   // window sunbeams: they lean toward you while you are inside, and fade with the daylight
+      c.beams.visible = dayK > .02; c.beams.alpha = dayK;
+      if (c.beams.visible) { let ch = false; for (const o of c.wins) { let tg = 0; if (inside) { const lat = (me.x - o.cx) * o.tx + (me.y - o.cy) * o.ty, dep = (me.x - o.cx) * o.ix + (me.y - o.cy) * o.iy; tg = clamp(lat * o.D / Math.max(dep, 50), -110, 110); } const n = o.sh + (tg - o.sh) * Math.min(1, dt * 5); if (Math.abs(n - o.sh) > .2) { o.sh = n; ch = true; } } if (ch) drawBeams(c); }
+    } if (c.a > .6 && Math.abs(c.chx - camX) < cr && Math.abs(c.chy - camY) < cr && Math.random() < dt * 2.4) emit(pfx, T_GLOW, c.chx + rnd(-4, 4), c.chy - 8, rnd(2, 12), rnd(-36, -22), 2.6, .08, .5, 0xd2d2d2, .3, false, 0); }   // the roof goes see-through while you are inside; the chimney smokes while it is on
   for (const o of cullList) { const cm = cr + (o.m || 0), nr = Math.abs(o.x - camX) < cm && Math.abs(o.y - camY) < cm; if (nr) { if (!o.c.parent) ents.addChild(o.c); } else if (o.c.parent && (Math.abs(o.x - camX) > cm * 1.3 || Math.abs(o.y - camY) > cm * 1.3)) ents.removeChild(o.c); }   // decorations, chests, traders: in the scene only near the camera
   for (const id in bulletE) { const e = bulletE[id], el = Math.min(.1, (now - e.t0) / 1000), a = e.d[3] / 100, v = BSPEED[e.d[4]] || 800; e.s.position.set(e.d[1] + Math.cos(a) * v * el, e.d[2] + Math.sin(a) * v * el); e.s.rotation = a; e.s.zIndex = e.s.y + 40; }
   for (const id in zoneE) { const e = zoneE[id]; e.s.position.set(e.d[1], e.d[2]); e.s.scale.set(e.d[3] * 2 / 256 * (1 + Math.sin(T * 3) * .02)); e.s.alpha = .35 + Math.sin(T * 5) * .08; }
@@ -332,7 +345,9 @@ let trOpen = null;
   document.body.appendChild(d); d.querySelector('#trClose').onclick = () => closeTrader();
 })();
 function closeTrader() { trOpen = null; $('trader').style.display = 'none'; }
-function xOpenTrader(m) { setCraft(false); closeChest(); closePot(); trOpen = { id: m.id, ty: m.ty }; $('trader').style.display = 'flex'; $('trMsg').textContent = ''; buildTrader(); SFX.chest(); }
+function xOpenTrader(m) {
+  if (m.ty === 5) { const mp = S && S.p.find(p => p[0] === myId), me = ents2['p' + myId]; if (mp && mp[25] > 0) { if (me) floatText(me.x, me.y - 20, 'He has nothing more to offer you.', 0xd1b3ff); return; } }   // the ability unlocker sells one ability per game: once it is bought he offers nothing else
+  setCraft(false); closeChest(); closePot(); trOpen = { id: m.id, ty: m.ty }; $('trader').style.display = 'flex'; $('trMsg').textContent = ''; buildTrader(); SFX.chest(); }
 const costStr = (cost, mp) => Object.entries(cost).map(([k, n]) => '<span class="' + ((mp[COSTX[k]] || 0) >= n ? '' : 'no') + '">' + COSTI[k] + ' ' + (mp[COSTX[k]] || 0) + '/' + n + '</span>').join(' &nbsp; ');
 function buildTrader() {
   if (!trOpen) return; const T = RC.TRADERS[trOpen.ty], mp = S.p.find(p => p[0] === myId) || [], list = $('trList'); list.innerHTML = '';
@@ -401,7 +416,8 @@ function xMsg(m) {
   else if (m.t === 'traded') {
     GEAR = m.gear || GEAR; if (m.prof) PF.abil = m.prof.abil || PF.abil;
     const tm = $('trMsg'); if (tm) { tm.textContent = m.msg || ''; tm.style.color = m.ok ? '#7fe9a0' : '#ff8a80'; } if (m.ok) { SFX.cook(); const me2 = ents2['p' + myId]; if (me2) floatText(me2.x, me2.y - 20, m.msg, 0xffe082); }
-    buildTrader(); try { buildPicker(); } catch (e) { }
+    if (m.ok && trOpen && trOpen.ty === 5) closeTrader(); else buildTrader();   // buying the ability closes the unlocker's menu
+    try { buildPicker(); } catch (e) { }
   }
 }
 

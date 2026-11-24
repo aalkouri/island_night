@@ -87,6 +87,10 @@ const SFX = (() => {
     smeltDone(d, dx) { tone({ f: 880, dur: .35, type: 'square', gain: .12, dist: d, dx }); tone({ f: 1318, dur: .45, type: 'triangle', gain: .14, when: .02, dist: d, dx }); noise({ type: 'highpass', f: 4000, dur: .25, gain: .25, dist: d, dx }); tone({ f: 160, f2: 90, dur: .2, type: 'triangle', gain: .3, dist: d, dx }); },
     roar() { tone({ f: 70, f2: 38, dur: 1.4, type: 'sawtooth', gain: .5, lp: 500, attack: .15 }); tone({ f: 150, f2: 80, dur: 1.1, type: 'square', gain: .16, lp: 700, attack: .1 }); noise({ type: 'lowpass', f: 900, f2: 200, q: .7, dur: 1.3, gain: .4, attack: .1 }); },
     slam() { tone({ f: 95, f2: 35, dur: .45, type: 'sine', gain: .7 }); noise({ type: 'lowpass', f: 700, dur: .4, gain: .5 }); noise({ f: 2500, q: .6, dur: .15, gain: .25 }); },
+    splash(d, dx, big) {   // a shark breaking the surface / crashing back in: a wet crash, a low thump and a few bubbly drips
+      const g = big ? 1 : .7; noise({ type: 'lowpass', f: 2800, f2: 450, q: .6, dur: .6, gain: .5 * g, attack: .01, dist: d, dx }); noise({ type: 'highpass', f: 3200, dur: .22, gain: .18 * g, when: .02, dist: d, dx }); tone({ f: 150, f2: 55, dur: .32, type: 'sine', gain: .4 * g, dist: d, dx });
+      for (let i = 0; i < 4; i++) tone({ f: rnd(480, 850), f2: rnd(900, 1500), dur: .06, type: 'sine', gain: .06 * g, when: .28 + i * .08 + rnd(0, .03), dist: d, dx });
+    },
     whoosh(d, dx) { noise({ f: 500, f2: 2400, q: .8, dur: .17, gain: .14, attack: .04, dist: d, dx }); },
     pop(d, dx, g) { noise({ type: 'highpass', f: rnd(1800, 4500), q: .6, dur: rnd(.02, .06), gain: (g || .2), dist: d, dx }); },
   };
