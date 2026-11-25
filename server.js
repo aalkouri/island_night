@@ -273,6 +273,14 @@ function genLoot(islands, code) {
     const free = isls.filter(i => !out.some(l => l.isl === i && l.trader)), pool = free.length ? free : isls, isl = pool[Math.floor(rnd() * pool.length)];
     const c = out.filter(l => l.isl === isl && !l.trader); if (c.length) c[Math.floor(rnd() * c.length)].trader = t;
   }
+  // every trader has a twin on a second island, to double the chance of finding one: the first one a player gets close to stays, the other is removed (stepTwins)
+  const rnd2 = seeded(code + '@twins');
+  for (let t = 1; t <= 5; t++) {
+    const a = out.find(l => l.trader === t && !l.tw); if (!a) continue;
+    const other = isls.filter(i => i !== a.isl), free = other.filter(i => !out.some(l => l.isl === i && l.trader)), pool = free.length ? free : other; if (!pool.length) continue;
+    const isl = pool[Math.floor(rnd2() * pool.length)], c = out.filter(l => l.isl === isl && !l.trader); if (!c.length) continue;
+    const b = c[Math.floor(rnd2() * c.length)]; b.trader = t; a.tw = b.id; b.tw = a.id;
+  }
   return out;
 }
 // ---------- cabins in the forest: random sizes, solid walls with one door, a treasure chest and cabinets inside ----------
@@ -446,7 +454,7 @@ class Room {
     } };
     add('t', 540, CAMP_CLEAR); add('r', 336); add('b', BUSHES);   // 4x the area of the old island, same density
     this.islands = mv >= 2 ? genIslands(code, this.worldR) : genIslandsLegacy(code); this.islands.forEach((is, i) => { if (i > 0) this.res.push(...islandRes(is, i, code)); });
-    this.loot = genLoot(this.islands, code); this.lava = genLava(this.islands, code, this.loot); this.villages = genVillages(this.islands, code, this.loot, this.lava);
+    this.tgone = []; this.loot = genLoot(this.islands, code); this.lava = genLava(this.islands, code, this.loot); this.villages = genVillages(this.islands, code, this.loot, this.lava);
     { const cb = genCabins(this.islands, code, this.loot); this.cabins = cb.cabins; this.loot.push(...cb.loot); this.clearCabinRes(); }
     this.reset();
   }
@@ -811,6 +819,16 @@ class Room {
     if (this.camps.some(c => Math.hypot(c.x - p.x, c.y - p.y) < 260)) return no('Too close to another campfire.');
     if (this.res.some(r => r.isl === ii && Math.hypot(r.x - p.x, r.y - p.y) < 140)) return no('Too close to a tree, rock, bush or ore - find a clearer spot.');   // (resources are checked even while they are chopped and regrowing)
     p.slots.splice(i, 1); this.camps.push({ id: this.nid++, isl: ii, x: p.x, y: p.y, fuel: 120, lvl: 1 }); send(p.ws, { t: 'camped' });
+  }
+  stepTwins(P) {   // a trader and his twin: when a player gets close to one, the other one leaves for good
+    if (this.twT = (this.twT || 0) + 1, this.twT % 10) return;
+    for (const l of this.loot) {
+      if (!l.tw || !l.trader || l.visit) continue;
+      const f = P.find(p => !p.down && Math.hypot(p.x - l.tx, p.y - l.ty) < 450); if (!f) continue;
+      const o = this.loot.find(q => q.id === l.tw); l.tw = 0; if (!o) continue;
+      o.tw = 0; o.trader = 0; (this.tgone || (this.tgone = [])).push(o.id);
+      for (const p of P) send(p.ws, { t: 'toast', msg: (p === f ? 'You found the ' : f.name + ' found the ') + RC.TRADERS[l.trader].n + '! The other one has left.' });
+    }
   }
   lootNear(p, kind) {
     for (const l of this.loot) {
@@ -1380,7 +1398,7 @@ class Room {
   }
   snapshot() {   // everything needed to rebuild this room after a server restart; connected players are saved as 'away' so they get their character back when they reconnect
     const away = [...this.away]; for (const p of this.players.values()) if (p.email) away.push([p.email, this.awayEntry(p)]);
-    return { code: this.code, c: this.c, night: this.night, fire: this.fire, aliens: this.aliens, res: this.res, islands: this.islands, isv: ISL_VER, mv: this.mv, camps: this.camps, lootOpen: this.loot.filter(l => l.open).map(l => l.id), boats: this.boats.map(b => ({ id: b.id, type: b.type || 'boat', x: b.x, y: b.y, ang: b.ang, life: b.life == null ? undefined : Math.round(b.life) })), scrapFound: this.scrapFound, drops: this.drops, pend: this.pend, struct: this.struct.filter(s => s.k !== 'cwall' && !s.cab), chargerNight: this.chargerNight, raidNight: this.raidNight, islNight: this.islNight, nid: this.nid, wolves: this.wolves || [], rabbits: this.rabbits || [], pools: this.pools || [], away };
+    return { code: this.code, c: this.c, night: this.night, fire: this.fire, aliens: this.aliens, res: this.res, islands: this.islands, isv: ISL_VER, mv: this.mv, camps: this.camps, tgone: this.tgone || [], lootOpen: this.loot.filter(l => l.open).map(l => l.id), boats: this.boats.map(b => ({ id: b.id, type: b.type || 'boat', x: b.x, y: b.y, ang: b.ang, life: b.life == null ? undefined : Math.round(b.life) })), scrapFound: this.scrapFound, drops: this.drops, pend: this.pend, struct: this.struct.filter(s => s.k !== 'cwall' && !s.cab), chargerNight: this.chargerNight, raidNight: this.raidNight, islNight: this.islNight, nid: this.nid, wolves: this.wolves || [], rabbits: this.rabbits || [], pools: this.pools || [], away };
   }
   saveBlob() {   // everything about this game, compactly: island resources are re-made from the room code, so only home's resources and the changed island ones are stored
     const o = this.snapshot(); delete o.islands;
@@ -1421,7 +1439,7 @@ class Room {
       }
     }
     r.loot = genLoot(r.islands, o.code); r.lava = genLava(r.islands, o.code, r.loot); r.villages = genVillages(r.islands, o.code, r.loot, r.lava); { const cb = genCabins(r.islands, o.code, r.loot); r.cabins = cb.cabins; r.loot.push(...cb.loot); }   // loot areas are derived from the islands; only which chests were opened and the campfires are saved
-    if (o.islands && o.isv === ISL_VER) { r.camps = o.camps || []; const op = new Set(o.lootOpen || []); for (const l of r.loot) if (op.has(l.id)) l.open = 1; }
+    if (o.islands && o.isv === ISL_VER) { r.camps = o.camps || []; const op = new Set(o.lootOpen || []); for (const l of r.loot) if (op.has(l.id)) l.open = 1; r.tgone = (o.tgone || []).slice(); const tg = new Set(r.tgone); for (const l of r.loot) { if (tg.has(l.id)) { l.trader = 0; l.tw = 0; } else if (l.tw && tg.has(l.tw)) l.tw = 0; } }
     { let nb = 0; r.res = r.res.filter(x => x.k !== 'b' || x.isl > 0 || ++nb <= BUSHES); }
     r.clearCabinRes(); r.addCabinWalls();   // rooms saved before the bush cut lose their extra bushes (done before anyone joins, so client indexes stay aligned)
     const now = Date.now(); r.away = new Map((o.away || []).map(([e, v]) => [e, { t: now, s: v.s }]));   // the reconnect window starts from the restart
@@ -1636,7 +1654,7 @@ class Room {
         e.spk = (e.spk || 0) - dt; if (e.spk > 0) continue; e.spk = 0.5; e.hp -= 10; if (e.wolf) { e.st = 1; } this.hitWall(st, 3); if (st.dead) break;
       }
     }
-    this.stepRabbits(P, dt); this.stepWolves(P, dt); this.stepPools(dt); this.stepVendor(P, dt);
+    this.stepRabbits(P, dt); this.stepWolves(P, dt); this.stepPools(dt); this.stepVendor(P, dt); this.stepTwins(P);
     // aliens
     if (ph === 2) for (let i = 0; i < this.islands.length; i++) this.nightSpawns(i, P, dt);
     for (const a of this.aliens) {
@@ -1750,7 +1768,7 @@ class Room {
       wf: (this.wolves || []).map(w => [w.id, Math.round(w.x), Math.round(w.y), Math.round(w.fa * 100), Math.round(w.hp), w.mhp, w.st, w.bite > 0 ? 1 : 0, w.alpha || 0, w.big || 0, w.vul ? (w.air ? 1 : 2) : 0, w.sp ? MOBS[w.sp].idx : 0]),
       rb: this.rabbits.map(b => [b.id, Math.round(b.x), Math.round(b.y), Math.round(b.fa * 100), b.run ? 1 : b.sit ? 0 : 2, CRIT[b.crit || 'rabbit'].idx]),
       cf: this.camps.map(c => [c.id, Math.round(c.x), Math.round(c.y), Math.round(c.fuel), RC.fuelMax(c.lvl), c.lvl, c.fuel > 0 ? RC.camp(c.lvl) : 0]),
-      lo: this.loot.filter(l => l.open).map(l => l.id),
+      lo: this.loot.filter(l => l.open).map(l => l.id), tg: this.tgone || [],
       bl: this.bullets.map(b => [b.id, Math.round(b.x), Math.round(b.y), Math.round(Math.atan2(b.vy, b.vx) * 100), b.kind]),
       zn: this.zones.map(z => [z.id, Math.round(z.x), Math.round(z.y), z.r, z.k, Math.ceil(z.ttl)]),
       tr: this.turrets.map(t => [t.id, Math.round(t.x), Math.round(t.y)]),

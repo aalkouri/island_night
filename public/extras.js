@@ -43,7 +43,7 @@ const TRADER_LOOK = { 1: ['#9e9e9e', '#616161', '#3e2723', null, 'pack'], 2: ['#
 const T_TRADER = {}; for (const k in TRADER_LOOK) T_TRADER[k] = PIXI.Texture.from(mkPlayerCanvas(TRADER_LOOK[k]));
 
 // ---------- state ----------
-let LOOT = [], cullList = [], lootE = {}, campE = {}, bulletE = {}, zoneE = {}, turretE = {};
+let LOOT = [], trE = {}, cullList = [], lootE = {}, campE = {}, bulletE = {}, zoneE = {}, turretE = {};
 const BSPEED = { 1: 700, 2: 800, 3: 1000 };
 const COSTI = { wood: '🪵', stone: '🪨', food: '🍓', scrap: '🔩', pelt: '🐺', apelt: '🐾', meat: '🍖', gold: '🪙' }, COSTX = { wood: 7, stone: 8, food: 9, scrap: 15, meat: 21, gold: 22, pelt: 23, apelt: 26 };
 
@@ -215,7 +215,7 @@ function xInit(m) {
       const c = new PIXI.Container(), sh = new PIXI.Sprite(T_SHADOW); sh.anchor.set(.5); sh.scale.set(.8, .5); sh.y = 8;
       const body = new PIXI.Sprite(T_TRADER[l.trader]); body.anchor.set(.5); body.scale.set(.95); body.rotation = Math.atan2(l.y - l.ty, l.x - l.tx) + 0;
       const tag = new PIXI.Text(RC.TRADERS[l.trader].e + ' ' + RC.TRADERS[l.trader].n, { fontFamily: 'system-ui,sans-serif', fontSize: 13, fontWeight: '800', fill: 0xffe082, stroke: 0x000000, strokeThickness: 4 }); tag.anchor.set(.5, 1); tag.y = -34; tag.resolution = 2;
-      c.addChild(sh, body, tag); c.position.set(l.tx, l.ty); c.zIndex = l.ty; cullList.push({ c, x: l.tx, y: l.ty }); SPR.npc(c, body, body.rotation, tag);
+      c.addChild(sh, body, tag); c.position.set(l.tx, l.ty); c.zIndex = l.ty; cullList.push({ c, x: l.tx, y: l.ty }); trE[l.id] = c; SPR.npc(c, body, body.rotation, tag);
     }
   }
 }
@@ -264,6 +264,11 @@ function xVendor(m) {
 function xSnap(m) {
   xVendor(m); xWeapon(m);
   const op = new Set(m.lo || []);
+  for (const id of m.tg || []) {   // a trader's twin was found elsewhere: this one has left (no longer on the map or in the world)
+    const c = trE[id]; if (!c) continue; delete trE[id];
+    const l = LOOT.find(q => q.id === id); if (l) l.trader = 0;
+    const k = cullList.findIndex(o => o.c === c); if (k >= 0) cullList.splice(k, 1); if (!c.destroyed) { try { burst(c.x, c.y, 10, 0xffe082, 90, false, .2); } catch (e) { } c.destroy({ children: true }); }
+  }
   const firstLoot = !window._lootSeen; window._lootSeen = 1;
   for (const id in lootE) { const e = lootE[id]; if (!e.open && op.has(+id)) { e.open = 1; e.openAt = firstLoot ? -1e9 : Date.now(); e.sp.texture = (e.tx || T_LCHEST[e.tier])[1]; }
     if (e.open && !e.gone) {   // an opened chest stays a few seconds, fades, then is gone (the ones opened before you joined are already gone)
