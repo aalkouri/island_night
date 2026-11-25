@@ -1512,7 +1512,7 @@ class Room {
         p.sta = Math.max(0, p.sta - STA.drain * rn * dt); p.staCd = STA.delay; spd *= 1 + (STA.sprint - 1) * rn;
         if (p.sta <= 0) { p.tired = 1; p.staCd = STA.tiredDelay; }
       } else {
-        p.staCd -= dt; if (p.staCd <= 0) { const SF = this.litAt(p.x, p.y); p.sta = Math.min(p.smax || STA.max, p.sta + STA.regen * (SF ? 1 + 0.05 * (SF.f.lvl - 1) : 1) * dt); }   // a lit fire speeds stamina refill: +5% per fire level above 1 (1.95x at level 20)
+        p.staCd -= dt; if (p.staCd <= 0) { const SF = this.litAt(p.x, p.y); p.sta = Math.min(p.smax || STA.max, p.sta + STA.regen * (SF ? 10 * (1 + 0.05 * (SF.f.lvl - 1)) : 1) * dt); }   // inside a lit fire's ring stamina refills 10x as fast (and +5% more per fire level above 1)
         if (p.tired && p.sta >= STA.resume * (p.smax || STA.max) / STA.max) p.tired = 0;
       }
       let flying = false;
