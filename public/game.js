@@ -727,7 +727,7 @@ function mkPlayer(p) {
 const AK = {
   0: { sc: .5, eo: 10, es: 6, hpW: 26, hpY: -26, shX: 1, shY: .55, eye: .24, tint: 0xffffff, eyeCol: 0xc6ff2a },
   1: { sc: .95, eo: 20, es: 12, hpW: 50, hpY: -42, shX: 1.8, shY: .9, eye: .42, tint: 0xff9ad0, eyeCol: 0xc6ff2a },
-  2: { sc: 1.5, eo: 31, es: 18, hpW: 96, hpY: -78, shX: 3.4, shY: 1.4, eye: .72, tint: 0xff7043, eyeCol: 0xff2a2a },
+  2: { sc: 1.5, eo: 31, es: 18, hpW: 96, hpY: -78, shX: 3.4, shY: 1.4, eye: .72, tint: 0xffffff, eyeCol: 0xff2a2a },
   3: { sc: .85, eo: 0, es: 0, hpW: 34, hpY: -32, shX: .8, shY: .5, eye: 0, tint: 0xffffff, eyeCol: 0, human: true },   // raiding villager (melee)
   4: { sc: .85, eo: 0, es: 0, hpW: 34, hpY: -32, shX: .8, shY: .5, eye: 0, tint: 0xffffff, eyeCol: 0, human: true },   // raiding villager (archer)
   5: { sc: .9, eo: 0, es: 0, hpW: 34, hpY: -34, shX: .85, shY: .5, eye: 0, tint: 0xffffff, eyeCol: 0, human: true },   // cult mage

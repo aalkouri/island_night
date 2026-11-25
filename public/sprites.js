@@ -25,7 +25,7 @@ const SPR = (() => {
     alien: { h: 32, fy: 6, w: 'float', eyes: { f: [[.11, .54]], s: [[-.24, .54]] }, es: .22 },
     spitter: { h: 42, fy: 7, w: 'squish', eyes: { f: [[-.12, .38], [.13, .38]], s: [[-.33, .56]] }, es: .2 },
     brute: { h: 72, fy: 12, w: 'stomp', sp: 70, eyes: { f: [[.07, .8], [.17, .8]], s: [[-.17, .82]] }, es: .2 },
-    charger: { h: 92, fy: 18, w: 'trot', sp: 160, eyes: { f: [[-.14, .33], [.13, .33]], s: [[-.36, .61]] }, es: .34 },
+    charger: { h: 92, fy: 18, w: 'trot', sp: 160 },   // the two-headed dog: no night glow on its eyes
     villager: { h: 44, fy: 10, w: 'walk' }, mage: { h: 46, fy: 10, w: 'walk' }, zealot: { h: 54, fy: 11, w: 'walk' }, survivor: { h: 46, fy: 10, w: 'walk', sp: 70 },
     wolf: { h: 50, fy: 8, w: 'trot', sp: 150 }, alpha_wolf: { h: 70, fy: 11, w: 'trot', sp: 150, eyes: { f: [[-.08, .35], [.07, .35]], s: [[-.28, .61]] }, es: .16 },
     bear: { h: 68, fy: 14, w: 'stomp', sp: 90 }, mammoth: { h: 136, fy: 26, w: 'stomp', sp: 70 }, boar: { h: 48, fy: 9, w: 'trot', sp: 130 }, golem: { h: 124, fy: 18, w: 'stomp', sp: 60 },
