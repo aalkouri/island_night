@@ -174,6 +174,7 @@ function solidPt(st, x, y) {
   const a = (st.rot || 0) * Math.PI / 4, ux = Math.cos(a), uy = Math.sin(a), t = Math.max(-GATE_HALF, Math.min(GATE_HALF, (x - st.x) * ux + (y - st.y) * uy));
   return [st.x + ux * t, st.y + uy * t, 12];
 }
+function farSolid(st, x, y) { const e = (st.len || (st.k === 'gate' ? GATE_HALF : 0)) + st.r + 100; return Math.abs(x - st.x) > e || Math.abs(y - st.y) > e; }   // cheap box test: a creature that far from a structure cannot touch it, so skip the expensive nearest-point maths
 const STRUCT = { bench: { r: RC.RADIUS.bench }, chest: { r: RC.RADIUS.chest }, pot: { r: RC.RADIUS.pot }, smelter: { r: RC.RADIUS.smelter }, wall: { r: RC.RADIUS.wall, hp: 150 }, gate: { r: RC.RADIUS.gate, hp: 50 }, spike: { r: RC.RADIUS.spike, hp: 120 },   // gates are much weaker than walls
    trap: { r: RC.RADIUS.trap } };
 const BAG_MAX = 99, BAG_KEYS = ['wood', 'stone', 'food', 'scrap', 'meat', 'gold', 'pelt', 'apelt', 'ammoP', 'ammoR'];   // no item stack in a bag goes past 99
@@ -560,7 +561,7 @@ class Room {
     const c = GC.BY[p.cls]; p.mhp = c.hp; p.hp = c.hp; p.down = 0; p.rev = 0; p.smax = GC.staMax(lvOf(p)); p.sta = p.smax; p.tired = 0; p.staCd = 0;
     const a = Math.random() * 6.283; p.x = Math.cos(a) * 100; p.y = Math.sin(a) * 100;
     if (process.env.START_TRADER) { const l = (this.loot || []).find(x => x.trader === +process.env.START_TRADER); if (l) { p.x = l.tx - 30; p.y = l.ty; return; } }   // (test hook: start next to a trader)
-    if (process.env.START_ISL) { const is = this.islands[+process.env.START_ISL]; if (is) { p.x = is.x; p.y = is.y; } }   // (test hook: start on an outer island)
+    if (process.env.START_ISL) { const is = this.islands[+process.env.START_ISL + (process.env.START_ISL_SPREAD ? this.players.size - 1 : 0)]; if (is) { p.x = is.x; p.y = is.y; } }   // (test hook: start on an outer island)
   }
   // a broken tree/rock leaves pickups on the ground after its fall/crumble animation (client shows them when they appear)
   spendSta(p, amt) {   // chopping, mining, picking and attacking cost stamina; while winded (after hitting 0) you can't until it refills to 30%
@@ -1141,7 +1142,7 @@ class Room {
     }
     { const ex = w.x - is.x, ey = w.y - is.y, L = Math.hypot(ex, ey), er = RC.edgeRat(is, w.x, w.y) - 45; if (L > er) { w.x = is.x + ex * er / L; w.y = is.y + ey * er / L; } }
     if (!w.air) for (const st of this.struct) {   // flying it passes over everything, but once it has landed, walls and closed gates are solid
-      if (st.k === 'trap' || st.k === 'spike' || (st.k === 'gate' && st.open)) continue;
+      if (st.k === 'trap' || st.k === 'spike' || (st.k === 'gate' && st.open) || farSolid(st, w.x, w.y)) continue;
       const [qx, qy, qr] = solidPt(st, w.x, w.y), sd = Math.hypot(w.x - qx, w.y - qy), mn = qr + 12; if (sd < mn && sd > 0.01) { w.x = qx + (w.x - qx) / sd * mn; w.y = qy + (w.y - qy) / sd * mn; }
     }
   }
@@ -1327,7 +1328,7 @@ class Room {
       if (w.st !== 2 && !this.mobBiomeOk(w, wi, is, nx, ny)) { if (w.st === 1) { w.st = 2; w.rt = 0; } else { w.sit = 1; } continue; }   // wolves, bears and mammoths never leave the snow: a chase ends at its edge and they head home
       if (w.st !== 2 && (nearFire(nx, ny) || Math.hypot(nx - w.hx, ny - w.hy) > WOLF.leash)) { w.st = 2; w.rt = 0; continue; }   // got near the fire / too far from home: back it goes
       { const ex = nx - is.x, ey = ny - is.y, L = Math.hypot(ex, ey), er = RC.edgeRat(is, nx, ny) - 45; if (L > er) { nx = is.x + ex * er / L; ny = is.y + ey * er / L; } }   // stays on its island
-      for (const st of this.struct) { if (st.k === 'trap' || st.k === 'spike' || (st.k === 'gate' && st.open)) continue; const [qx, qy, qr] = solidPt(st, nx, ny), sd = Math.hypot(nx - qx, ny - qy), mn = qr + (w.big ? 26 : 12); if (sd < mn && sd > 0.01) { nx = qx + (nx - qx) / sd * mn; ny = qy + (ny - qy) / sd * mn; } }   // walls and gates are solid for wolves too
+      for (const st of this.struct) { if (st.k === 'trap' || st.k === 'spike' || (st.k === 'gate' && st.open) || farSolid(st, nx, ny)) continue; const [qx, qy, qr] = solidPt(st, nx, ny), sd = Math.hypot(nx - qx, ny - qy), mn = qr + (w.big ? 26 : 12); if (sd < mn && sd > 0.01) { nx = qx + (nx - qx) / sd * mn; ny = qy + (ny - qy) / sd * mn; } }   // walls and gates are solid for wolves too
       w.x = nx; w.y = ny; w.fa = Math.atan2(dy, dx);
     }
     for (const w of this.wolves) if (w.hp <= 0 && !w.dropped) { w.dropped = 1; const BG = BIG[w.big], MB = MOBS[w.sp], AL = w.alpha || w.big === 2, n = BG ? BG.meat[0] + (Math.random() * (BG.meat[1] + 1) | 0) : MB ? MB.meat[0] + (Math.random() * (MB.meat[1] + 1) | 0) : 1 + (Math.random() < 0.5 ? 1 : 0); for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, d = 8 + Math.random() * (BG ? 40 : 18); this.pend.push({ k: 'n', x: w.x + Math.cos(a) * d, y: w.y + Math.sin(a) * d, t: 0.15 }); }
@@ -1519,7 +1520,7 @@ class Room {
       if (p.kb) { p.kb.t += dt; const u = p.kb.t / CHARGER.stunSec; if (u >= 1) p.kb = null; else { const v = p.kb.v0 * (1 - u) * (1 - u); p.x += p.kb.dx * v * dt; p.y += p.kb.dy * v * dt; flying = true; } }   // knocked back: no steering until it wears off
       if (!flying) { p.x += dx * spd * dt; p.y += dy * spd * dt; } if (m > 0.1) p.fa = Math.atan2(dy, dx);
       if (i.am) p.fa = i.aim;   // aiming (mouse cursor / aim stick): you face where you aim, whichever way you walk
-      for (const st of this.struct) { if (st.k === 'trap' || st.k === 'spike' || (st.k === 'gate' && st.open)) continue; const [qx, qy, qr] = solidPt(st, p.x, p.y), sd = Math.hypot(p.x - qx, p.y - qy), mn = qr + 14; if (sd < mn && sd > 0.01) { p.x = qx + (p.x - qx) / sd * mn; p.y = qy + (p.y - qy) / sd * mn; } }
+      for (const st of this.struct) { if (st.k === 'trap' || st.k === 'spike' || (st.k === 'gate' && st.open) || farSolid(st, p.x, p.y)) continue; const [qx, qy, qr] = solidPt(st, p.x, p.y), sd = Math.hypot(p.x - qx, p.y - qy), mn = qr + 14; if (sd < mn && sd > 0.01) { p.x = qx + (p.x - qx) / sd * mn; p.y = qy + (p.y - qy) / sd * mn; } }
       { const g = this.resGrid(), cx = Math.floor(p.x / 200), cy = Math.floor(p.y / 200);   // trunks and boulders are obstacles
         for (let ax = -1; ax <= 1; ax++) for (let ay = -1; ay <= 1; ay++) { const arr = g.get((cx + ax) * 100003 + cy + ay); if (!arr) continue;
           for (const r of arr) { if (r.hp <= 0) continue; const sd = Math.hypot(p.x - r.x, p.y - r.y), mn = RES_R[r.k] + 14; if (sd < mn && sd > 0.01) { p.x = r.x + (p.x - r.x) / sd * mn; p.y = r.y + (p.y - r.y) / sd * mn; } } } }
@@ -1695,7 +1696,7 @@ class Room {
       } else if (a.k === 4 || a.k === 5) a.aim = 0;
       if (!stay && (pathBlocked || d > (a.vil && !tgt ? 90 : (a.stop || 20)))) { a.x += mx * sp * (a.vil && !tgt ? 0.6 : 1) * dt; a.y += my * sp * (a.vil && !tgt ? 0.6 : 1) * dt; }
       for (const st of this.struct) {   // every structure is solid and indestructible (except traps)
-        if (st.k === 'trap' || st.k === 'spike' || (st.k === 'gate' && st.open)) continue;
+        if (st.k === 'trap' || st.k === 'spike' || (st.k === 'gate' && st.open) || farSolid(st, a.x, a.y)) continue;
         const [qx, qy, qr] = solidPt(st, a.x, a.y), sd = Math.hypot(a.x - qx, a.y - qy), mn = qr + (a.rad || 12);
         if (sd < mn) { const k = sd > 0.01 ? mn / sd : 1; a.x = qx + (a.x - qx) * k; a.y = qy + (a.y - qy) * k; }   // solid: aliens slide around it, but cannot damage it, and it does not damage them
       }
@@ -1725,7 +1726,7 @@ class Room {
         } else if (w.hd === 1) w.hd = 2;
       }
       w.x += w.vx * dt; w.y += w.vy * dt; w.ttl -= dt; let dead = w.ttl <= 0;
-      if (!dead) for (const st of this.struct) if (st.k !== 'trap' && st.k !== 'spike' && !(st.k === 'gate' && st.open)) { const [qx, qy, qr] = solidPt(st, w.x, w.y); if (Math.hypot(w.x - qx, w.y - qy) < qr) { if (st.hp > 0) this.hitWall(st, w.dmg); dead = true; break; } }
+      if (!dead) for (const st of this.struct) if (st.k !== 'trap' && st.k !== 'spike' && !(st.k === 'gate' && st.open) && !farSolid(st, w.x, w.y)) { const [qx, qy, qr] = solidPt(st, w.x, w.y); if (Math.hypot(w.x - qx, w.y - qy) < qr) { if (st.hp > 0) this.hitWall(st, w.dmg); dead = true; break; } }
       if (!dead) for (const p of P) if (!p.down && !p.boat && Math.hypot(p.x - w.x, p.y - w.y) < 18) { this.hurt(p, w.dmg); dead = true; break; }
       if (dead) this.arrows.splice(i, 1);
     }
@@ -1876,14 +1877,19 @@ wss.on('connection', ws => {
 });
 
 let tk = 0;
+const TS = { on: !!process.env.TICK_STATS, t: 0, tn: 0, tmax: 0, s: 0, sn: 0, smax: 0, b: 0, bn: 0, last: Date.now() };   // TICK_STATS=1: log how long ticks and snapshots take (for tracking down lag)
 setInterval(() => {
   tk++;
   for (const [c, r] of rooms) {
+    const t0 = TS.on ? process.hrtime.bigint() : 0n;
     try { r.tick(1 / 30); } catch (e) { console.error('tick error:', e && e.stack || e); }
-    if (tk % 2 === 0 && r.players.size) { const s = r.snap(); for (const p of r.players.values()) if (p.ws.readyState === 1) p.ws.send(s.get(p.id)); }
+    if (TS.on) { const d = Number(process.hrtime.bigint() - t0) / 1e6; TS.t += d; TS.tn++; if (d > TS.tmax) TS.tmax = d; }
+    if (tk % 2 === 0 && r.players.size) { const t1 = TS.on ? process.hrtime.bigint() : 0n; const s = r.snap(); for (const p of r.players.values()) if (p.ws.readyState === 1) { const m = s.get(p.id); if (TS.on) { TS.b += m.length; TS.bn++; } p.ws.send(m); }
+      if (TS.on) { const d = Number(process.hrtime.bigint() - t1) / 1e6; TS.s += d; TS.sn++; if (d > TS.smax) TS.smax = d; } }
     if (r.emptyFor > ROOM_IDLE_SEC) rooms.delete(c);   // nobody joined for the whole window: destroy the session
     if (r.ended) rooms.delete(c);   // everyone died and the game-over screens were sent: the session is gone (the same code starts a brand-new game)
   }
+  if (TS.on && Date.now() - TS.last > 5000) { console.log('[tick] rooms ' + rooms.size + ' players ' + [...rooms.values()].reduce((a, r) => a + r.players.size, 0) + ' | tick avg ' + (TS.t / Math.max(1, TS.tn)).toFixed(2) + ' ms max ' + TS.tmax.toFixed(1) + ' | snap+send avg ' + (TS.s / Math.max(1, TS.sn)).toFixed(2) + ' ms max ' + TS.smax.toFixed(1) + ' | snapshot avg ' + Math.round(TS.b / Math.max(1, TS.bn)) + ' bytes | budget 33.3 ms'); TS.t = TS.tn = TS.tmax = TS.s = TS.sn = TS.smax = TS.b = TS.bn = 0; TS.last = Date.now(); }
 }, 1000 / 30);
 
 srv.listen(PORT, () => console.log('Island Night listening on', PORT, 'profiles:', pcount, 'dir:', DIR));
