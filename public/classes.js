@@ -65,6 +65,6 @@
   const XP_A = 16, LV_MAX = 99;
   const xpAt = L => XP_A * (L - 1) * (L - 1);
   const lvlOf = xp => Math.max(1, Math.min(LV_MAX, 1 + Math.floor(Math.sqrt(Math.max(0, xp || 0) / XP_A))));
-  const staMax = L => Math.round(100 * (1 + 4 * (Math.min(LV_MAX, Math.max(1, L)) - 1) / (LV_MAX - 1)));   // max stamina: 100 at level 1 up to 500 (5x) at level 99
+  const staMax = L => Math.round(200 * (1 + 4 * (Math.min(LV_MAX, Math.max(1, L)) - 1) / (LV_MAX - 1)));   // max stamina: 200 at level 1 up to 1000 (5x) at level 99 (doubled: a full-stick run now lasts ~12 s)
   return { XP_A, LV_MAX, xpAt, lvlOf, staMax, ABIL, abilCost, LIST, BY, DEF, DEFAULT_OWNED: LIST.filter(c => c.price === 0).map(c => c.id) };
 });
