@@ -445,7 +445,9 @@ const T_ALIEN = tex(84, 84, g => {
 });
 
 // ---------- renderer ----------
-const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x0d2a40, antialias: true, resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true });
+// Picture sharpness adapts to the device: it starts at the screen's own density (max 2) and steps down by itself (2 > 1.5 > 1.25 > 1) while the frame rate stays low; the choice is remembered. ?res=2 (or any 1-2) forces a value and turns the automatic step-down off.
+const RESQ = (() => { let forced = null, saved = 0; try { const m = /[?&]res=([\d.]+)/.exec(location.search); if (m) { forced = Math.max(1, Math.min(2, +m[1] || 2)); localStorage.setItem('in_res', forced); localStorage.setItem('in_resf', '1'); } else { saved = parseFloat(localStorage.getItem('in_res')) || 0; forced = localStorage.getItem('in_resf') === '1' ? saved : null; } } catch (e) { } return { forced: forced !== null && forced > 0, v: Math.min(window.devicePixelRatio || 1, 2, saved > 0 ? saved : 2) }; })();
+const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x0d2a40, antialias: true, resolution: RESQ.v, autoDensity: true });
 document.body.insertBefore(app.view, document.body.firstChild);
 app.view.style.cssText = 'position:fixed;inset:0;width:100%;height:100%';
 const stage = app.stage;
@@ -538,6 +540,17 @@ function fit() {
   if (w + 'x' + h === lastWH) return; lastWH = w + 'x' + h;
   app.renderer.resize(w, h); resize();
 }
+let slowN = 0, fpsN = 0, fpsT = performance.now(), qHold = 0;
+app.ticker.add(() => { fpsN++; });
+setInterval(() => {   // every 2 s: if the game is running slowly, draw fewer pixels
+  const now = performance.now(), fps = fpsN * 1000 / (now - fpsT); fpsN = 0; fpsT = now;
+  if (document.hidden || !S || !built || RESQ.forced) { slowN = 0; return; }
+  if (qHold > now) return;
+  if (fps < 42) slowN++; else slowN = 0;
+  const r = app.renderer.resolution; if (slowN < 2 || r <= 1.01) return;
+  const nr = r > 1.6 ? 1.5 : r > 1.3 ? 1.25 : 1; slowN = 0; qHold = now + 5000;
+  app.renderer.resolution = nr; try { localStorage.setItem('in_res', nr); } catch (e) { } lastWH = ''; fit();
+}, 2000);
 function refit() { fit(); for (const t of [60, 200, 500, 1000]) setTimeout(fit, t); }
 addEventListener('resize', refit); addEventListener('orientationchange', refit); addEventListener('pageshow', refit);
 if (window.visualViewport) visualViewport.addEventListener('resize', refit);
