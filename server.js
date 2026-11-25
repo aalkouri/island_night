@@ -1740,7 +1740,7 @@ class Room {
     if (last && last.length === hpNow.length) for (let i = 0; i < hpNow.length; i++) if (hpNow[i] !== last[i]) rd.push(i, hpNow[i]);
     this.lastRhp = hpNow; this.rForce = 0; let rsFull = null;
     const o = {
-      t: 's', c: Math.round(this.c * 10) / 10, n: this.night, ph: this.ph(), o: this.over > 0 ? 1 : 0,
+      t: 's', sv: SV, c: Math.round(this.c * 10) / 10, n: this.night, ph: this.ph(), o: this.over > 0 ? 1 : 0,
       f: [Math.round(f.fuel), RC.fuelMax(f.lvl), f.lvl, f.fuel > 0 ? RC.camp(f.lvl) : 0],
       p: [...this.players.values()].map(p => [p.id, p.name, p.cls, Math.round(p.x), Math.round(p.y), Math.round(p.hp), p.mhp, p.wood, p.stone, p.food, p.down, Math.round(p.rev * 10) / 10, p.sw, p.swk, Math.round(p.swa * 100), p.scrap, Math.round(p.fa * 100), Math.round(p.sta), p.tired, p.slots, p.boat || 0, p.meat || 0, p.gold || 0, p.pelt || 0, slotCap(p, this), !p.abilOn ? 0 : p.abilCd > 0 ? Math.ceil(p.abilCd) + 1 : 1, p.apelt || 0, p.fish1 || 0, p.fish2 || 0, p.fish3 || 0, p.prof ? p.prof.bn || 0 : 0, lvOf(p), p.smax || STA.max, this.gunOf(p) === 'pistol' ? 1 : this.gunOf(p) === 'rifle' ? 2 : 0, (() => { const g = this.gunOf(p); return g === 'rifle' ? p.magR || 0 : g === 'pistol' ? p.magP || 0 : 0; })(), (() => { const g = this.gunOf(p); return g === 'rifle' ? p.ammoR || 0 : g === 'pistol' ? p.ammoP || 0 : 0; })(), p.reload ? Math.max(1, Math.round(p.reload.t / p.reload.dur * 100)) : 0]),
       sk: (this.sharks || []).map(s => [s.id, Math.round(s.x), Math.round(s.y), Math.round(s.fa * 100), s.bite > 0 ? 1 : 0, s.out !== undefined ? 1 : 0]),
@@ -1777,7 +1777,7 @@ const ROOMS_FILE = DIR && path.join(DIR, 'rooms.json'); let lastRoomsJson = '';
 function saveRooms(sync) {   // the compact form (about a third of the size); written in the background except at shutdown
   if (!ROOMS_FILE) return;
   try {
-    const j = JSON.stringify([...rooms.values()].map(r => r.saveBlob())); if (j === lastRoomsJson) return; lastRoomsJson = j;
+    const t0 = process.hrtime.bigint(); const j = JSON.stringify([...rooms.values()].map(r => r.saveBlob())); if (typeof TS !== 'undefined' && TS.on) { const d = Number(process.hrtime.bigint() - t0) / 1e6; if (d > TS.save) TS.save = d; TS.saveBytes = j.length; } if (j === lastRoomsJson) return; lastRoomsJson = j;
     if (sync) { fs.writeFileSync(ROOMS_FILE + '.tmp', j); fs.renameSync(ROOMS_FILE + '.tmp', ROOMS_FILE); }
     else fs.writeFile(ROOMS_FILE + '.tmp', j, e => { if (e) return console.error('rooms save failed:', e.message); fs.rename(ROOMS_FILE + '.tmp', ROOMS_FILE, () => { }); });
   } catch (e) { console.error('rooms save failed:', e.message); }
@@ -1863,6 +1863,7 @@ wss.on('connection', ws => {
       const now = Date.now(); if (now - (me.lastCook || 0) < 150) return; me.lastCook = now;
       let res; try { res = room.cook(me, String(m.id || '')); } catch (e) { console.error('cook error:', e && e.stack || e); res = { ok: false, msg: 'Could not cook that.' }; }
       send(ws, { t: 'cooked', id: String(m.id || ''), ok: res.ok, msg: res.msg, b: me.buff });
+    } else if (m.t === 'pg') { send(ws, { t: 'pn', c: +m.c || 0 });   // latency probe for the ?debug screen
     } else if (m.t === 'in' && me) {
       const n = v => Math.max(-1, Math.min(1, +v || 0));
       me.inp = { dx: n(m.dx), dy: n(m.dy), act: m.act ? 1 : 0, hit: m.hit ? 1 : 0, rn: Math.max(0, Math.min(1, +m.rn || 0)), am: m.am && isFinite(+m.aim) ? 1 : 0, aim: +m.aim || 0 }; me.inpAt = Date.now();
@@ -1877,9 +1878,12 @@ wss.on('connection', ws => {
 });
 
 let tk = 0;
-const TS = { on: !!process.env.TICK_STATS, t: 0, tn: 0, tmax: 0, s: 0, sn: 0, smax: 0, b: 0, bn: 0, last: Date.now() };   // TICK_STATS=1: log how long ticks and snapshots take (for tracking down lag)
+let SV = [0, 0, 0];   // server health for the ?debug screen: [average ms a game update takes, slowest update, worst lateness of the loop] over the last 2 seconds
+const SW = { t: 0, n: 0, mx: 0, lag: 0, last: performance.now(), at: Date.now() };
+const TS = { save: 0, saveBytes: 0, on: !!process.env.TICK_STATS, t: 0, tn: 0, tmax: 0, s: 0, sn: 0, smax: 0, b: 0, bn: 0, last: Date.now() };   // TICK_STATS=1: log how long ticks and snapshots take (for tracking down lag)
 setInterval(() => {
   tk++;
+  const nowP = performance.now(), late = nowP - SW.last - 1000 / 30; SW.last = nowP; if (late > SW.lag) SW.lag = late; const tW = nowP;
   for (const [c, r] of rooms) {
     const t0 = TS.on ? process.hrtime.bigint() : 0n;
     try { r.tick(1 / 30); } catch (e) { console.error('tick error:', e && e.stack || e); }
@@ -1889,7 +1893,8 @@ setInterval(() => {
     if (r.emptyFor > ROOM_IDLE_SEC) rooms.delete(c);   // nobody joined for the whole window: destroy the session
     if (r.ended) rooms.delete(c);   // everyone died and the game-over screens were sent: the session is gone (the same code starts a brand-new game)
   }
-  if (TS.on && Date.now() - TS.last > 5000) { console.log('[tick] rooms ' + rooms.size + ' players ' + [...rooms.values()].reduce((a, r) => a + r.players.size, 0) + ' | tick avg ' + (TS.t / Math.max(1, TS.tn)).toFixed(2) + ' ms max ' + TS.tmax.toFixed(1) + ' | snap+send avg ' + (TS.s / Math.max(1, TS.sn)).toFixed(2) + ' ms max ' + TS.smax.toFixed(1) + ' | snapshot avg ' + Math.round(TS.b / Math.max(1, TS.bn)) + ' bytes | budget 33.3 ms'); TS.t = TS.tn = TS.tmax = TS.s = TS.sn = TS.smax = TS.b = TS.bn = 0; TS.last = Date.now(); }
+  { const d = performance.now() - tW; SW.t += d; SW.n++; if (d > SW.mx) SW.mx = d; if (Date.now() - SW.at > 2000) { SV = [Math.round(SW.t / Math.max(1, SW.n) * 10) / 10, Math.round(SW.mx * 10) / 10, Math.round(SW.lag * 10) / 10]; SW.t = SW.n = SW.mx = SW.lag = 0; SW.at = Date.now(); } }
+  if (TS.on && Date.now() - TS.last > 5000) { console.log('[tick] rooms ' + rooms.size + ' players ' + [...rooms.values()].reduce((a, r) => a + r.players.size, 0) + ' | tick avg ' + (TS.t / Math.max(1, TS.tn)).toFixed(2) + ' ms max ' + TS.tmax.toFixed(1) + ' | snap+send avg ' + (TS.s / Math.max(1, TS.sn)).toFixed(2) + ' ms max ' + TS.smax.toFixed(1) + ' | snapshot avg ' + Math.round(TS.b / Math.max(1, TS.bn)) + ' bytes | budget 33.3 ms | room save stall ' + TS.save.toFixed(1) + ' ms (' + Math.round(TS.saveBytes / 1024) + ' KB)'); TS.save = 0; TS.t = TS.tn = TS.tmax = TS.s = TS.sn = TS.smax = TS.b = TS.bn = 0; TS.last = Date.now(); }
 }, 1000 / 30);
 
 srv.listen(PORT, () => console.log('Island Night listening on', PORT, 'profiles:', pcount, 'dir:', DIR));
