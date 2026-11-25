@@ -11,7 +11,8 @@ const SPR = (() => {
   for (const n of V3.concat(CLS.map(c => 'cls_' + c))) for (const v of ['_front', '_side', '_back']) has.add(n + v);
   const load = n => {
     if (OFF || st[n] || !has.has(n)) return; st[n] = 1; const im = new Image();
-    im.onload = () => { const t = PIXI.Texture.from(im); t.baseTexture.mipmap = PIXI.MIPMAP_MODES.ON; TX[n] = t; st[n] = 2; ver++; }; im.onerror = () => { st[n] = 3; }; im.src = 'sprites/' + n + '.webp';
+    // (each picture is also uploaded to the graphics chip a few at a time as it arrives, instead of in one big stall the first time it is drawn: a new tree type, a new creature)
+    im.onload = () => { const t = PIXI.Texture.from(im); t.baseTexture.mipmap = PIXI.MIPMAP_MODES.ON; TX[n] = t; st[n] = 2; ver++; try { if (typeof app !== 'undefined' && app.renderer && app.renderer.prepare) app.renderer.prepare.upload(t); } catch (e) { } }; im.onerror = () => { st[n] = 3; }; im.src = 'sprites/' + n + '.webp';
   };
   const get = n => TX[n] || (load(n), null);
   const views = n => { const f = get(n + '_front'), s = get(n + '_side'), b = get(n + '_back'); return f && s && b ? { f, s, b } : null; };
